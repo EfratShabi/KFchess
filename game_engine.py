@@ -107,7 +107,8 @@ def main():
         parts = line.split()
         if not parts:
             continue
-        game_over=update_board_by_time(chess, current_time, pending_moves)
+        if not game_over:
+            game_over=update_board_by_time(chess, current_time, pending_moves)
         cmd_type = parts[0]
 
         if cmd_type == "click" and game_over==False:
