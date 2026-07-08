@@ -109,6 +109,11 @@ class Pawn(Piece):
 
         if actual_row_diff == row_step and col_diff == 0:
             return board[er][ec] == EMPTY_CELL
+            
+        elif actual_row_diff == 2 * row_step and col_diff == 0:
+            start_row = len(board) - 2 if self.color == 'w' else 1
+            middle_row = sr + row_step
+            return sr == start_row and board[middle_row][sc] == EMPTY_CELL and board[er][ec] == EMPTY_CELL
 
         elif actual_row_diff == row_step and col_diff == 1:
             return board[er][ec] != EMPTY_CELL

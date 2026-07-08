@@ -16,6 +16,13 @@ def update_board_by_time(chess, current_time, pending_moves):
 
             chess.set_piece(move['end'][0], move['end'][1], move['piece'])
             chess.clear_cell(move['start'][0], move['start'][1])
+            piece_str = move['piece']
+            end_row = move['end'][0]
+            #בדיקה אם החייל הגיע לסוף-נהפך למלכה
+            if piece_str[1] == 'P':
+                last_row = 0 if piece_str[0] == 'w' else len(chess.grid) - 1
+                if end_row == last_row:
+                    chess.set_piece(end_row, move['end'][1], piece_str[0] + 'Q')
         else:
             moves_to_keep.append(move)
             
@@ -51,7 +58,8 @@ def handle_click(chess, row, col, selected_piece, current_time, pending_moves):
         else:
             piece = create_piece(selected_piece_name)
             #אם לפי הדרישות הכלי יכול לזוז למקום החדש
-            if piece.can_move(chess.grid, (prev_row, prev_col), (row, col)):          
+            if piece.can_move(chess.grid, (prev_row, prev_col), (row, col)):     
+
                 distance = max(abs(row - prev_row), abs(col - prev_col))
                 duration = distance * MS_PER_CELL
                 arrival_time = current_time + duration
