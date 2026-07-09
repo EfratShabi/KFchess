@@ -1,13 +1,12 @@
 from board import EMPTY_CELL
 
-
 class Piece:
     def __init__(self, color, kind):
         self.color = color 
         self.kind = kind    
 
 
-    def can_move(self, board, start, end) -> bool:
+    def can_move(self, board, start, end):
         raise NotImplementedError
 
 
@@ -19,7 +18,7 @@ class King(Piece):
     def __init__(self, color):
         super().__init__(color, 'K')
 
-    def can_move(self, board, start, end) -> bool:
+    def can_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         return abs(er - sr) <= 1 and abs(ec - sc) <= 1
@@ -29,7 +28,7 @@ class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, 'N')
 
-    def can_move(self, board, start, end) -> bool:
+    def can_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         return (abs(er - sr) == 1 and abs(ec - sc) == 2) or \
@@ -40,7 +39,7 @@ class Rook(Piece):
     def __init__(self, color):
         super().__init__(color, 'R')
 
-    def _has_blocker(self, board, sr, sc, er, ec) -> bool:
+    def _has_blocker(self, board, sr, sc, er, ec):
         if sc == ec:  
             step = 1 if sr < er else -1
             for r in range(sr + step, er, step):
@@ -53,7 +52,7 @@ class Rook(Piece):
                     return True
         return False
 
-    def can_move(self, board, start, end) -> bool:
+    def can_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         if sr != er and sc != ec:
@@ -100,7 +99,7 @@ class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color, 'P')
 
-    def can_move(self, board, start, end) -> bool:
+    def can_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         row_step = -1 if self.color == 'w' else 1  
@@ -109,11 +108,13 @@ class Pawn(Piece):
 
         if actual_row_diff == row_step and col_diff == 0:
             return board[er][ec] == EMPTY_CELL
-            
+
         elif actual_row_diff == 2 * row_step and col_diff == 0:
-            start_row = len(board) - 2 if self.color == 'w' else 1
+            is_start = (self.color == 'w' and sr == len(board) - 2) or \
+               (self.color == 'b' and sr == 1)
             middle_row = sr + row_step
-            return sr == start_row and board[middle_row][sc] == EMPTY_CELL and board[er][ec] == EMPTY_CELL
+            return is_start and board[middle_row][sc] == EMPTY_CELL and board[er][ec] == EMPTY_CELL
+
 
         elif actual_row_diff == row_step and col_diff == 1:
             return board[er][ec] != EMPTY_CELL
@@ -131,7 +132,7 @@ PIECE_CLASSES = {
 }
 
 
-def create_piece(piece_str) -> Piece:
+def create_piece(piece_str):
     color = piece_str[0]
     kind = piece_str[1]
     return PIECE_CLASSES[kind](color)

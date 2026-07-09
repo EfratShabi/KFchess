@@ -1,34 +1,12 @@
-from piece import create_piece
-from board_parser import parse_game_data, check_valid
-from board import Board, MS_PER_CELL
+from domain.piece import create_piece
+from domain.board import Board, MS_PER_CELL
+from adapters.board_parser import parse_game_data, check_valid
+from adapters.borad_mapper import pixel_to_cell
+from services.real_time_arbiter import update_board_by_time
 
 import sys
 
-def update_board_by_time(chess, current_time, pending_moves):
-    moves_to_keep = []
-    king_is_dead=False
-    for move in pending_moves:
-        if current_time >= move['arrival_time']:
 
-            target = chess.get_piece_str(move['end'][0], move['end'][1])
-            if target and target[1] == 'K': 
-                king_is_dead=True
-
-            chess.set_piece(move['end'][0], move['end'][1], move['piece'])
-            chess.clear_cell(move['start'][0], move['start'][1])
-            piece_str = move['piece']
-            end_row = move['end'][0]
-            #בדיקה אם החייל הגיע לסוף-נהפך למלכה
-            if piece_str[1] == 'P':
-                last_row = 0 if piece_str[0] == 'w' else len(chess.grid) - 1
-                if end_row == last_row:
-                    chess.set_piece(end_row, move['end'][1], piece_str[0] + 'Q')
-        else:
-            moves_to_keep.append(move)
-            
-    pending_moves.clear()
-    pending_moves.extend(moves_to_keep)
-    return king_is_dead
 
 def print_board(chess, parts):
     if len(parts) > 1 and parts[1] == "board":
@@ -114,8 +92,7 @@ def main():
         if cmd_type == "click" and game_over==False:
             x = int(parts[1])
             y = int(parts[2])
-            col = x // 100
-            row = y // 100
+            row,col=pixel_to_cell(x,y)
             selected_piece = handle_click(chess, row, col, selected_piece, current_time, pending_moves)
             
 
