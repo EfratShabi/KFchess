@@ -18,8 +18,9 @@ class RealTimeArbiter:
             'piece': piece,
             'arrival_time': arrival_time
         })
+    
 
-    def update(self, chess):
+    def update_board_by_time(self, chess):
         if self.game_over:
             return
         moves_to_keep = []
@@ -39,3 +40,10 @@ class RealTimeArbiter:
             else:
                 moves_to_keep.append(move)
         self.pending_moves = moves_to_keep
+
+
+    def is_moving(self, row, col):
+        return any(move['start'] == (row, col) for move in self.pending_moves)
+
+
+    

@@ -1,4 +1,4 @@
-from board import EMPTY_CELL
+from domain.board import EMPTY_CELL
 
 class Piece:
     def __init__(self, color, kind):
@@ -122,6 +122,12 @@ class Pawn(Piece):
         return False
 
 
+def create_piece(piece_str):
+    color = piece_str[0]
+    kind = piece_str[1]
+    return PIECE_CLASSES[kind](color)
+    
+
 PIECE_CLASSES = {
     'K': King,
     'Q': Queen,
@@ -130,9 +136,3 @@ PIECE_CLASSES = {
     'N': Knight,
     'P': Pawn,
 }
-
-
-def create_piece(piece_str):
-    color = piece_str[0]
-    kind = piece_str[1]
-    return PIECE_CLASSES[kind](color)

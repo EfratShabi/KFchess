@@ -39,29 +39,3 @@ def parse_game_data(lines):
             
     return chess, commands
 
-
-def main():
-    input_text = sys.stdin.read()   
-    lines = input_text.splitlines()
-    if not lines:
-        return 
-
-    chess, commands = parse_game_data(lines)
-    if not chess:
-        return
-
-    first_row_tokens = chess[0]
-    length_cols = len(first_row_tokens)
-    length_rows = len(chess)
-    
-    for i in range(length_rows):
-        current_row_tokens = chess[i] 
-        if len(current_row_tokens) != length_cols:
-            print("ERROR ROW_WIDTH_MISMATCH")
-            return
-    
-    if check_valid(chess) == 0:
-        return
-
-if __name__ == "__main__":
-    main()

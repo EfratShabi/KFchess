@@ -1,110 +1,61 @@
-from domain.piece import create_piece
-from domain.board import Board, MS_PER_CELL
+from domain.board import Board
 from adapters.board_parser import parse_game_data, check_valid
-from adapters.borad_mapper import pixel_to_cell
-from services.real_time_arbiter import update_board_by_time
+from config.errors import ERR_ROW_WIDTH_MISMATCH
+from services.real_time_arbiter import RealTimeArbiter
+from services.game_service import GameService
 
 import sys
 
+def is_valid_size(chess,):
+    
+    if not chess:
+        return False
 
+    length_cols = len(chess[0])
+    for row in chess:
+        if len(row) != length_cols:
+            print("ERROR", ERR_ROW_WIDTH_MISMATCH)
+            return False
 
-def print_board(chess, parts):
-    if len(parts) > 1 and parts[1] == "board":
-        for r in chess.grid:
-            print(" ".join(r))
-
-def handle_click(chess, row, col, selected_piece, current_time, pending_moves):
-    if row < 0 or row >= chess.rows or col < 0 or col >= chess.cols:
-        return selected_piece
-
-    for move in pending_moves:
-        if move['start'] == (row, col):
-            return selected_piece
-    #במידה וזה האיבר הראשון שהשחקן לחץ
-    if selected_piece is None:
-        if not chess.is_empty(row,col):
-            selected_piece = (row, col)
-        return selected_piece
-    else:
-        prev_row, prev_col = selected_piece
-        selected_piece_name = chess.get_piece_str(prev_row, prev_col)
-
- #אם התבצע לחיצה על איבר מאותו הצבע -נתיחס ללחיצה האחרונה
-        if not chess.is_empty(row, col) and chess.get_piece_color(row, col) == selected_piece_name[0]:
-            selected_piece = (row, col)
-            return selected_piece
-        else:
-            piece = create_piece(selected_piece_name)
-            #אם לפי הדרישות הכלי יכול לזוז למקום החדש
-            if piece.can_move(chess.grid, (prev_row, prev_col), (row, col)):     
-
-                distance = max(abs(row - prev_row), abs(col - prev_col))
-                duration = distance * MS_PER_CELL
-                arrival_time = current_time + duration
-                #נוסיף איבר חדש למערך האיברים שבתזוזה
-                pending_moves.append({
-                    'start': (prev_row, prev_col),
-                    'end': (row, col),
-                    'piece': selected_piece_name,
-                    'arrival_time': arrival_time
-                })
-                #מנקים לפקודה חדשה של תזוזה
-                selected_piece = None
-            return selected_piece
-
-
+    if check_valid(chess) == 0:
+        return False
+    return True
 
 
 def main():
-    input_text = sys.stdin.read()   
+    input_text = sys.stdin.read()
     lines = input_text.splitlines()
     chess, commands = parse_game_data(lines)
-    
-    if not chess:
+
+    if not is_valid_size(chess):
         return
-        
-    first_row_tokens = chess[0]
-    length_cols = len(first_row_tokens)
-    length_rows = len(chess)
 
-    for i in range(length_rows):
-        if len(chess[i]) != length_cols:
-            print("ERROR ROW_WIDTH_MISMATCH")
-            return
+    board = Board(chess)
+    arbiter = RealTimeArbiter()
+    service = GameService(board, arbiter)
 
-    if check_valid(chess) == 0:
-        return
-    chess = Board(chess) 
-
-    selected_piece = None
-    current_time = 0
-    pending_moves = []
-    game_over=False
-    
     for line in commands:
         parts = line.split()
         if not parts:
             continue
-        if not game_over:
-            game_over=update_board_by_time(chess, current_time, pending_moves)
-        cmd_type = parts[0]
 
-        if cmd_type == "click" and game_over==False:
+        cmd_type = parts[0]
+        
+
+        if cmd_type == "click":
             x = int(parts[1])
             y = int(parts[2])
-            row,col=pixel_to_cell(x,y)
-            selected_piece = handle_click(chess, row, col, selected_piece, current_time, pending_moves)
-            
+            service.process_click(x, y)
 
         elif cmd_type == "print":
-            print_board(chess, parts)
-
-
+            print(service.get_board_string())
 
         elif cmd_type == "wait":
-            wait_duration = int(parts[1])
-            current_time += wait_duration
-    
+            duration = int(parts[1])
+            service.process_wait(duration)
+
+        if service.is_game_over():
+            break
 
 if __name__ == "__main__":
     main()
