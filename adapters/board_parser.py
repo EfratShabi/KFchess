@@ -10,7 +10,7 @@ def check_valid_token(chess):
     for row in chess:
         for token in row:
             if token not in valid_char:
-                print("ERROR UNKNOWN_TOKEN")
+                print("ERROR", errors.ERR_UNKNOWN_TOKEN)
                 return False               
     return True
     
@@ -22,7 +22,7 @@ def is_valid_input(chess):
     length_cols = len(chess[0])
     for row in chess:
         if len(row) != length_cols:
-            print("ERROR", ERR_ROW_WIDTH_MISMATCH)
+            print("ERROR", errors.ERR_ROW_WIDTH_MISMATCH)
             return False
 
     return check_valid_token(chess)

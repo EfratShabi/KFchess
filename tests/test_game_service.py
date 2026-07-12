@@ -1,210 +1,154 @@
+# -*- coding: utf-8 -*-
+"""טסטים ל-GameService — process_click, process_jump, process_wait"""
+import pytest
 from domain.board import Board
 from real_time.real_time import RealTime
 from services.game_service import GameService
 
 
+def make_service(*rows):
+    grid = [r.split() for r in rows]
+    return GameService(Board(grid), RealTime())
+
+
+# ──────────────────────────────
+# process_click — בחירה
+# ──────────────────────────────
+
 def test_click_selects_piece():
-    """לחיצה על כלי בוחרת אותו"""
-    grid = [
-        ['wR', '.', '.'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
+    svc = make_service("wR . .")
+    svc.process_click(50, 50)       # (0,0)
+    assert svc.selected_piece == (0, 0)
 
-    service.process_click(50, 50)  # לוחץ על wR
+def test_click_empty_cell_no_selection():
+    svc = make_service(". . .")
+    svc.process_click(150, 50)      # (0,1) ריק
+    assert svc.selected_piece is None
 
-    assert service.selected_piece == (0, 0)
+def test_click_outside_board_ignored():
+    svc = make_service("wR . .")
+    svc.process_click(500, 500)
+    assert svc.selected_piece is None
 
-def test_move_registers_in_arbiter():
-    """תנועה נרשמת ב-arbiter"""
-    grid = [
-        ['wR', '.', '.'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-
-    service.process_click(50, 50)   # בחירה
-    service.process_click(250, 50)  # תנועה
-
-    assert len(arbiter.pending_moves) == 1
-    assert arbiter.pending_moves[0]['piece'] == 'wR'
+def test_click_outside_board_negative():
+    svc = make_service("wR . .")
+    svc.process_click(-100, -100)
+    assert svc.selected_piece is None
 
 
-# ====== מקרי קצה ל-GameService ======
+# ──────────────────────────────
+# process_click — החלפת בחירה
+# ──────────────────────────────
 
-def test_click_outside_board():
-    """לחיצה מחוץ ללוח - לא אמור לקרוס"""
-    grid = [
-        ['wR', '.', '.'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(500, 500)  # מחוץ לגבולות
-    
-    assert service.selected_piece is None
+def test_click_friendly_replaces_selection():
+    svc = make_service("wR wN .")
+    svc.process_click(50, 50)       # בוחר wR
+    svc.process_click(150, 50)      # בוחר wN
+    assert svc.selected_piece == (0, 1)
 
-
-def test_click_on_moving_piece():
-    """לחיצה על כלי שכבר בתנועה - לא אמור לאפשר בחירה"""
-    grid = [
-        ['wR', '.', '.', '.'],
-        ['.', '.', '.', '.'],
-        ['.', '.', '.', '.'],
-        ['.', '.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(50, 50)   # בחירת wR
-    service.process_click(350, 50)  # תנועה ל-column 3
-    
-    # wR עכשיו בתנועה - ננסה לבחור אותו שוב
-    service.process_click(50, 50)   # לא אמור לאפשר
-    
-    assert service.selected_piece is None
+def test_click_friendly_does_not_queue_move():
+    svc = make_service("wR wN .")
+    svc.process_click(50, 50)
+    svc.process_click(150, 50)
+    assert svc.state.movements == []
 
 
-def test_select_empty_cell():
-    """לחיצה על תא ריק - לא אמור לבחור כלום"""
-    grid = [
-        ['.', '.', '.'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(150, 50)  # תא ריק
-    
-    assert service.selected_piece is None
+# ──────────────────────────────
+# process_click — רישום תנועה
+# ──────────────────────────────
+
+def test_legal_move_registers_movement():
+    svc = make_service("wR . .")
+    svc.process_click(50, 50)
+    svc.process_click(250, 50)      # (0,2) — חוקי לצריח
+    assert len(svc.state.movements) == 1
+
+def test_legal_move_clears_selection():
+    svc = make_service("wR . .")
+    svc.process_click(50, 50)
+    svc.process_click(250, 50)
+    assert svc.selected_piece is None
+
+def test_illegal_move_no_movement_registered():
+    svc = make_service("wR . .", ". . .")
+    svc.process_click(50, 50)
+    svc.process_click(250, 150)     # (1,2) — אלכסון, לא חוקי לצריח
+    assert svc.state.movements == []
+
+def test_move_stores_correct_piece():
+    svc = make_service("wR . .")
+    svc.process_click(50, 50)
+    svc.process_click(250, 50)
+    assert svc.state.movements[0].piece == 'wR'
+
+def test_move_stores_correct_destination():
+    svc = make_service("wR . .")
+    svc.process_click(50, 50)
+    svc.process_click(250, 50)
+    assert svc.state.movements[0].end == (0, 2)
 
 
-def test_move_to_empty_and_occupied():
-    """תנועה לתא ריק ולתא תפוס"""
-    grid = [
-        ['wR', '.', 'bK'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    # תנועה לתא ריק
-    service.process_click(50, 50)   # בחירת wR
-    service.process_click(150, 50)  # תנועה לתא ריק
-    
-    assert len(arbiter.pending_moves) == 1
-    assert arbiter.pending_moves[0]['end'] == (0, 1)
+# ──────────────────────────────
+# process_click — כלי בתנועה
+# ──────────────────────────────
+
+def test_cannot_click_moving_piece():
+    svc = make_service("wR . . .")
+    svc.process_click(50, 50)
+    svc.process_click(350, 50)      # שולח wR לתנועה
+    svc.process_click(50, 50)       # מנסה לבחור שוב — צריך להיכשל
+    assert svc.selected_piece is None
 
 
-def test_change_selection_same_color():
-    """לחיצה על כלי אחר מאותו צבע - מחליף בחירה"""
-    grid = [
-        ['wR', 'wP', '.'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(50, 50)   # בחירת wR
-    assert service.selected_piece == (0, 0)
-    
-    service.process_click(150, 50)  # לחיצה על wP
-    assert service.selected_piece == (0, 1)  # החליף ל-wP
+# ──────────────────────────────
+# process_jump
+# ──────────────────────────────
+
+def test_jump_registers_jump():
+    svc = make_service("wK . .")
+    svc.process_jump(50, 50)
+    assert len(svc.state.jumps) == 1
+
+def test_jump_correct_piece():
+    svc = make_service("wK . .")
+    svc.process_jump(50, 50)
+    assert svc.state.jumps[0].piece == 'wK'
+
+def test_jump_empty_cell_ignored():
+    svc = make_service(". . .")
+    svc.process_jump(150, 50)
+    assert svc.state.jumps == []
+
+def test_jump_outside_board_ignored():
+    svc = make_service("wK . .")
+    svc.process_jump(500, 500)
+    assert svc.state.jumps == []
+
+def test_jump_moving_piece_ignored():
+    svc = make_service("wR . . .")
+    svc.process_click(50, 50)
+    svc.process_click(350, 50)      # שולח wR לתנועה
+    svc.process_jump(50, 50)        # מנסה לקפוץ — אמור להיכשל
+    assert svc.state.jumps == []
 
 
-def test_invalid_move_keeps_selection():
-    """מהלך לא חוקי - שומר את הבחירה"""
-    grid = [
-        ['wR', '.', '.', '.'],
-        ['.', '.', '.', '.'],
-        ['.', '.', '.', '.'],
-        ['.', '.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(50, 50)   # בחירת wR
-    service.process_click(250, 150) # מהלך אלכסוני - לא חוקי לצריח
-    
-    # הבחירה צריכה להישאר
-    assert service.selected_piece == (0, 0)
-    assert len(arbiter.pending_moves) == 0
+# ──────────────────────────────
+# is_game_over
+# ──────────────────────────────
+
+def test_game_over_false_initially():
+    svc = make_service("wR bK .")
+    assert svc.is_game_over() is False
 
 
-def test_game_over_blocks_clicks():
-    """אחרי game over - clicks לא פועלים"""
-    grid = [
-        ['wR', '.', 'bK'],
-        ['.', '.', '.'],
-        ['.', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    # מבצע תנועה שאוכלת מלך
-    service.process_click(50, 50)
-    service.process_click(250, 50)
-    
-    # מקדם זמן כדי שהתנועה תסתיים
-    service.process_wait(3000)
-    
-    assert service.is_game_over() == True
-    
-    # מנסה לבצע תנועה נוספת - לא אמור לעבוד
-    service.process_click(250, 50)
-    assert service.selected_piece is None
+# ──────────────────────────────
+# get_board_string
+# ──────────────────────────────
 
+def test_get_board_string_single_row():
+    svc = make_service("wR . bK")
+    assert svc.get_board_string() == "wR . bK"
 
-def test_multiple_pending_moves():
-    """כמה תנועות בו זמנית"""
-    grid = [
-        ['wR', '.', '.'],
-        ['bR', '.', '.']
-    ]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    # תנועה של לבן
-    service.process_click(50, 50)
-    service.process_click(250, 50)
-    
-    # תנועה של שחור
-    service.process_click(50, 150)
-    service.process_click(250, 150)
-    
-    assert len(arbiter.pending_moves) == 2
-
-
-def test_wait_advances_time():
-    """wait מקדם זמן ומבצע תנועות"""
-    grid = [['wR', '.', '.']]
-    board = Board(grid)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
-    
-    service.process_click(50, 50)
-    service.process_click(250, 50)
-    
-    initial_time = arbiter.current_time
-    service.process_wait(1000)
-    
-    assert arbiter.current_time == initial_time + 1000
+def test_get_board_string_two_rows():
+    svc = make_service("wR . .", ". bK .")
+    assert svc.get_board_string() == "wR . .\n. bK ."

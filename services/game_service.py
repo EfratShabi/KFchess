@@ -65,7 +65,7 @@ class GameService:
         if piece.can_move(self.board.grid, (prev_row, prev_col), (row, col)):
             distance = max(abs(row - prev_row), abs(col - prev_col))
             self.state.register_move((prev_row, prev_col), (row, col), piece_str, distance)
-            self.selected_piece = None
+        self.selected_piece = None
 
 
     

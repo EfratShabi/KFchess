@@ -12,6 +12,7 @@ class Piece:
         er, ec = end
         target = board[er][ec]
         if target != EMPTY_CELL and target[0] == self.color:
+            self.selected_piece = None
             return False
         return self._validate_move(board, start, end)
 
@@ -86,6 +87,7 @@ class Bishop(Piece):
     def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
+        
         if abs(er - sr) != abs(ec - sc):
             return False 
         return not self._has_blocker(board, sr, sc, er, ec)
