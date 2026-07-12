@@ -1,5 +1,5 @@
 from domain.board import Board
-from real_time_arbiter import RealTimeArbiter
+from real_time.real_time import RealTime
 from services.game_service import GameService
 
 

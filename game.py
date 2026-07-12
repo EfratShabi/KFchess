@@ -1,7 +1,8 @@
 from domain.board import Board
 from adapters.board_parser import parse_game_data, is_valid_input
 from config.errors import ERR_ROW_WIDTH_MISMATCH
-from services.real_time_arbiter import RealTimeArbiter
+from config.constants import COMMANDS
+from real_time.real_time import RealTime
 from services.game_service import GameService
 import sys
 
@@ -15,8 +16,8 @@ def main():
         return
 
     board = Board(chess)
-    arbiter = RealTimeArbiter()
-    service = GameService(board, arbiter)
+    state = RealTime()
+    service = GameService(board, state)
 
     for line in commands:
         parts = line.split()
@@ -24,17 +25,22 @@ def main():
             continue
         
         cmd_type = parts[0]
-        if cmd_type == "click":
+        if cmd_type == COMMANDS['CLICK']:
             x = int(parts[1])
             y = int(parts[2])
             service.process_click(x, y)
 
-        elif cmd_type == "print":
-            print(service.get_board_string())
-
-        elif cmd_type == "wait":
+        elif cmd_type == COMMANDS['WAIT']:
             duration = int(parts[1])
             service.process_wait(duration)
+
+        elif cmd_type == COMMANDS['PRINT']:
+            print(service.get_board_string())
+
+        elif cmd_type == COMMANDS['JUMP']:
+            x = int(parts[1])
+            y = int(parts[2])
+            service.process_jump(x, y)
 
         if service.is_game_over():
             break

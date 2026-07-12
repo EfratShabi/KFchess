@@ -7,7 +7,11 @@ class Piece:
 
     def can_move(self, board, start, end):
         # בדיקה כללית: כלי לא יכול "לנוע" לאותו מקום
-        if start == end:
+        # if start == end:
+        #     return False
+        er, ec = end
+        target = board[er][ec]
+        if target != EMPTY_CELL and target[0] == self.color:
             return False
         return self._validate_move(board, start, end)
 
