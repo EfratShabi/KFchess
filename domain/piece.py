@@ -3,12 +3,16 @@ from domain.board import EMPTY_CELL
 class Piece:
     def __init__(self, color, kind):
         self.color = color 
-        self.kind = kind    
-
+        self.kind = kind   
 
     def can_move(self, board, start, end):
-        raise NotImplementedError
+        # בדיקה כללית: כלי לא יכול "לנוע" לאותו מקום
+        if start == end:
+            return False
+        return self._validate_move(board, start, end)
 
+    def _validate_move(self, board, start, end):
+        raise NotImplementedError
 
     def __str__(self):
         return self.color + self.kind
@@ -18,7 +22,7 @@ class King(Piece):
     def __init__(self, color):
         super().__init__(color, 'K')
 
-    def can_move(self, board, start, end):
+    def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         return abs(er - sr) <= 1 and abs(ec - sc) <= 1
@@ -28,7 +32,7 @@ class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, 'N')
 
-    def can_move(self, board, start, end):
+    def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         return (abs(er - sr) == 1 and abs(ec - sc) == 2) or \
@@ -52,10 +56,10 @@ class Rook(Piece):
                     return True
         return False
 
-    def can_move(self, board, start, end):
+    def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
-        if sr != er and sc != ec:
+        if sr != er and sc != ec:  
             return False  
         return not self._has_blocker(board, sr, sc, er, ec)
 
@@ -75,7 +79,7 @@ class Bishop(Piece):
             c += step_col
         return False
 
-    def can_move(self, board, start, end):
+    def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         if abs(er - sr) != abs(ec - sc):
@@ -99,7 +103,7 @@ class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color, 'P')
 
-    def can_move(self, board, start, end):
+    def _validate_move(self, board, start, end):
         sr, sc = start
         er, ec = end
         row_step = -1 if self.color == 'w' else 1  
@@ -114,7 +118,6 @@ class Pawn(Piece):
                (self.color == 'b' and sr == 1)
             middle_row = sr + row_step
             return is_start and board[middle_row][sc] == EMPTY_CELL and board[er][ec] == EMPTY_CELL
-
 
         elif actual_row_diff == row_step and col_diff == 1:
             return board[er][ec] != EMPTY_CELL

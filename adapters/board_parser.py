@@ -1,6 +1,7 @@
 import sys
+from config import errors
 
-def check_valid(chess):
+def check_valid_token(chess):
     valid_char = {
         '.', 
         'wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 
@@ -10,9 +11,22 @@ def check_valid(chess):
         for token in row:
             if token not in valid_char:
                 print("ERROR UNKNOWN_TOKEN")
-                return 0
-    return 1
+                return False               
+    return True
     
+def is_valid_input(chess):
+    
+    if not chess:
+        return False
+
+    length_cols = len(chess[0])
+    for row in chess:
+        if len(row) != length_cols:
+            print("ERROR", ERR_ROW_WIDTH_MISMATCH)
+            return False
+
+    return check_valid_token(chess)
+
 
 def parse_game_data(lines):
     is_board = False

@@ -44,6 +44,5 @@ class RealTimeArbiter:
 
     def is_moving(self, row, col):
         return any(move['start'] == (row, col) for move in self.pending_moves)
-
-
     
+
