@@ -29,10 +29,8 @@ class RealTime:
 
     def register_jump(self, cell, piece):
         arrival_time = self.current_time + JUMP_DURATION_MS
- 
         self.jumps.append(Jump(piece, cell, arrival_time))
     
-
 
     def update(self, board):
         if self.game_over:
@@ -43,6 +41,7 @@ class RealTime:
             self.movements.remove(movement)
         due_jumps = [j for j in self.jumps if j.is_expired(self.current_time)]
         for jump in due_jumps:
+            board.set_piece(*jump.cell, jump.piece)
             self.jumps.remove(jump)
 
 

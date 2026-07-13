@@ -6,9 +6,8 @@ class Piece:
         self.kind = kind   
 
     def can_move(self, board, start, end):
-        # בדיקה כללית: כלי לא יכול "לנוע" לאותו מקום
-        # if start == end:
-        #     return False
+        if start == end:
+            return False
         er, ec = end
         target = board[er][ec]
         if target != EMPTY_CELL and target[0] == self.color:
@@ -88,6 +87,10 @@ class Bishop(Piece):
         sr, sc = start
         er, ec = end
         
+
+
+
+
         if abs(er - sr) != abs(ec - sc):
             return False 
         return not self._has_blocker(board, sr, sc, er, ec)
