@@ -39,7 +39,7 @@ class RealTime:
         for movement in due_movements:
             self._resolve_movement(movement, board)
             self.movements.remove(movement)
-        due_jumps = [j for j in self.jumps if j.is_expired(self.current_time)]
+        due_jumps = [j for j in self.jumps if self.current_time >= j.arrival_time]
         for jump in due_jumps:
             board.set_piece(*jump.cell, jump.piece)
             self.jumps.remove(jump)

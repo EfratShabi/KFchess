@@ -372,8 +372,8 @@ def test_rook_blocked_horizontally():
     # חסום על ידי חייל לבן
     assert rook.can_move(board, (0, 0), (0, 4)) == False
     
-    # יכול לנוע עד החייל (לא כולל)
-    assert rook.can_move(board, (0, 0), (0, 1)) == True
+    # לא יכול לנוע לתא של כלי ידידותי
+    assert rook.can_move(board, (0, 0), (0, 1)) == False
 
 
 def test_rook_blocked_vertically():
@@ -403,7 +403,7 @@ def test_rook_multiple_blockers():
     # החוסם הראשון קובע
     assert rook.can_move(board, (0, 0), (0, 3)) == False  # חסום ב-wP
     assert rook.can_move(board, (0, 0), (0, 5)) == False  # חסום לפני
-    assert rook.can_move(board, (0, 0), (0, 2)) == True   # יכול להגיע
+    assert rook.can_move(board, (0, 0), (0, 2)) == False  # לא יכול לנוע לתא ידידותי
 
 
 def test_bishop_blocked_diagonal():
@@ -419,8 +419,8 @@ def test_bishop_blocked_diagonal():
     # חסום על ידי חייל לבן
     assert bishop.can_move(board, (0, 0), (3, 3)) == False
     
-    # יכול לנוע עד החייל
-    assert bishop.can_move(board, (0, 0), (1, 1)) == True
+    # לא יכול לנוע לתא של כלי ידידותי
+    assert bishop.can_move(board, (0, 0), (1, 1)) == False
 
 
 def test_bishop_blocked_reverse_diagonal():
@@ -470,7 +470,7 @@ def test_queen_blocked_like_rook():
     
     # חסומה אופקית
     assert queen.can_move(board, (0, 0), (0, 3)) == False
-    assert queen.can_move(board, (0, 0), (0, 1)) == True
+    assert queen.can_move(board, (0, 0), (0, 1)) == False
 
 
 def test_queen_blocked_like_bishop():

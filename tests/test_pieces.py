@@ -31,7 +31,7 @@ def test_king_cannot_move_two_cells():
 
 def test_king_cannot_stay_in_place():
     b = empty(3, 3)
-    assert King('w').can_move(b, (1, 1), (1, 1)) is True  # same pos: blocked by own piece check only if piece there
+    assert King('w').can_move(b, (1, 1), (1, 1)) is False
 
 def test_king_blocked_by_friendly():
     b = board_from("wR wK .")

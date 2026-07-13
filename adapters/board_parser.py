@@ -20,6 +20,9 @@ def is_valid_input(chess):
         return False
 
     length_cols = len(chess[0])
+    if len(chess) != length_cols:
+        print("ERROR", errors.ERR_ROW_WIDTH_MISMATCH)
+        return False
     for row in chess:
         if len(row) != length_cols:
             print("ERROR", errors.ERR_ROW_WIDTH_MISMATCH)

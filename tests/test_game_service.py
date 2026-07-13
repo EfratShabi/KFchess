@@ -145,6 +145,16 @@ def test_game_over_false_initially():
 # get_board_string
 # ──────────────────────────────
 
+def test_cannot_redirect_piece_already_moving():
+    svc = make_service("wR . . .", ". . . .", ". . . .", ". . . .")
+    svc.process_click(50, 50)
+    svc.process_click(350, 50)   # שולח wR ל-(0,3), 3000ms
+    svc.process_click(50, 50)    # מנסה לבחור שוב את wR — אמור להיכשל
+    svc.process_click(150, 50)   # מנסה להפנות ל-(0,1)
+    assert len(svc.state.movements) == 1
+    assert svc.state.movements[0].end == (0, 3)
+
+
 def test_get_board_string_single_row():
     svc = make_service("wR . bK")
     assert svc.get_board_string() == "wR . bK"
