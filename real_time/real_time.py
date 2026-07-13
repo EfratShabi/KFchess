@@ -33,10 +33,11 @@ class RealTime:
         self.jumps.append(Jump(piece, cell, arrival_time))
     
 
+
     def update(self, board):
         if self.game_over:
             return
-        due_movements = [m for m in self.movements if m.is_due(self.current_time)]  # אם תוסיפי גם ל-Movement
+        due_movements = [m for m in self.movements if m.is_due(self.current_time)]  
         for movement in due_movements:
             self._resolve_movement(movement, board)
             self.movements.remove(movement)
@@ -44,6 +45,8 @@ class RealTime:
         for jump in due_jumps:
             self.jumps.remove(jump)
 
+
+   #האם הכלי נוחת בשלום, או שהוא נלכד באוויר על ידי כלי אחר?
     def _resolve_movement(self, movement, board):
         landing_jump = next((j for j in self.jumps if j.intercepts(movement)), None)
         if landing_jump is not None:
