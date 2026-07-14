@@ -5,17 +5,7 @@ class Piece:
         self.color = color 
         self.kind = kind   
 
-    def can_move(self, board, start, end):
-        if start == end:
-            return False
-        er, ec = end
-        target = board[er][ec]
-        if target != EMPTY_CELL and target[0] == self.color:
-            self.selected_piece = None
-            return False
-        return self._validate_move(board, start, end)
-
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         raise NotImplementedError
 
     def __str__(self):
@@ -26,7 +16,7 @@ class King(Piece):
     def __init__(self, color):
         super().__init__(color, 'K')
 
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         sr, sc = start
         er, ec = end
         return abs(er - sr) <= 1 and abs(ec - sc) <= 1
@@ -36,7 +26,7 @@ class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, 'N')
 
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         sr, sc = start
         er, ec = end
         return (abs(er - sr) == 1 and abs(ec - sc) == 2) or \
@@ -60,7 +50,7 @@ class Rook(Piece):
                     return True
         return False
 
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         sr, sc = start
         er, ec = end
         if sr != er and sc != ec:  
@@ -83,14 +73,9 @@ class Bishop(Piece):
             c += step_col
         return False
 
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         sr, sc = start
         er, ec = end
-        
-
-
-
-
         if abs(er - sr) != abs(ec - sc):
             return False 
         return not self._has_blocker(board, sr, sc, er, ec)
@@ -103,16 +88,16 @@ class Queen(Piece):
         self._rook = Rook(color)
         self._bishop = Bishop(color)
 
-    def can_move(self, board, start, end) -> bool:
-        return self._rook.can_move(board, start, end) or \
-               self._bishop.can_move(board, start, end)
+    def validate_move_by_piece_rules(self, board, start, end):
+        return self._rook.validate_move_by_piece_rules(board, start, end) or \
+               self._bishop.validate_move_by_piece_rules(board, start, end)
 
 
 class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color, 'P')
 
-    def _validate_move(self, board, start, end):
+    def validate_move_by_piece_rules(self, board, start, end):
         sr, sc = start
         er, ec = end
         row_step = -1 if self.color == 'w' else 1  

@@ -234,8 +234,6 @@ class TestJump:
         # עכשיו הזז את הרץ הלבן לכיוון (0,2) – מרחק 2 תאים = 2000 מ"ש
         svc.process_click(50, 50)
         svc.process_click(250, 50)
-
-        # תן קצת זמן לתנועה להגיע – אחרי 2000 מ"ש
         svc.process_wait(2000)
 
         # הרץ הלבן תפס/נתפס; הלוגיקה תלויה ב-_resolve_movement

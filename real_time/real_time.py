@@ -1,23 +1,23 @@
 from config.constants import MS_PER_CELL,JUMP_DURATION_MS ,KING
 from domain.movement import Movement
 from domain.jump import Jump
+from domain.position import Position
 
 
 
 class RealTime:
     def __init__(self):
         self.current_time = 0
-        self.pending_moves = []
         self.game_over = False
 
         self.movements = []  
         self.jumps = []     
 
     def is_moving(self, row, col):
-        return any(m.start == (row, col) for m in self.movements)
+        return any(m.start == Position(row, col) for m in self.movements)
 
     def is_jumping(self, row, col):
-        return any(j.cell == (row, col) for j in self.jumps) 
+        return any(j.cell == Position(row, col) for j in self.jumps)
     
     def advance_time(self, ms):
         self.current_time += ms
@@ -41,7 +41,7 @@ class RealTime:
             self.movements.remove(movement)
         due_jumps = [j for j in self.jumps if self.current_time >= j.arrival_time]
         for jump in due_jumps:
-            board.set_piece(*jump.cell, jump.piece)
+            board.set_piece(jump.cell.row, jump.cell.col, jump.piece)
             self.jumps.remove(jump)
 
 

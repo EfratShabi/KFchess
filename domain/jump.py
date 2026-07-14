@@ -11,6 +11,4 @@ class Jump:
     def intercepts(self, movement):
         if movement.piece[0] == self.piece[0]:
             return False
-        
-        # נוחת על התא שלי
         return movement.end == self.cell

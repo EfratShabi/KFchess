@@ -3,5 +3,11 @@ class Position:
         self.row = row
         self.col = col
 
-    def as_tuple(self):
-        return (self.row, self.col)
+    def __eq__(self, other):
+        if isinstance(other, Position):
+            return self.row == other.row and self.col == other.col
+        return NotImplemented
+
+    def __iter__(self):
+        yield self.row
+        yield self.col
