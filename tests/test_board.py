@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """טסטים ל-Board — כל מתודות המחלקה"""
-from domain.board import Board, EMPTY_CELL
+from core.domain.board import Board, EMPTY_CELL
 
 
 def grid(*rows):

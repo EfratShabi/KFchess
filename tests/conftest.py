@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """fixtures משותפים לכל הטסטים"""
 import pytest
-from domain.board import Board
-from real_time.real_time import RealTime
-from services.game_service import GameService
+from core.domain.board import Board
+from core.real_time.real_time import RealTime
+from core.services.game_service import GameService
 
 
 def grid(*rows):

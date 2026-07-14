@@ -1,9 +1,9 @@
-from domain.board import Board
-from adapters.board_parser import parse_game_data, is_valid_input
-from config.errors import ERR_ROW_WIDTH_MISMATCH
-from config.constants import COMMANDS
-from real_time.real_time import RealTime
-from services.game_service import GameService
+from core.domain.board import Board
+from interfaces.cli.board_parser import parse_game_data, is_valid_input
+from core.config.errors import ERR_ROW_WIDTH_MISMATCH
+from core.config.constants import COMMANDS
+from core.real_time.real_time import RealTime
+from core.services.game_service import GameService
 import sys
 
 

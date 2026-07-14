@@ -2,8 +2,8 @@
 """
 טסטים ל-Jump class
 """
-from domain.jump import Jump
-from domain.movement import Movement
+from core.domain.jump import Jump
+from core.domain.movement import Movement
 
 
 # ---------- is_expired ----------

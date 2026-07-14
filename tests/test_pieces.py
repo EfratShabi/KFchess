@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """טסטים לחוקי תנועה של כל סוג כלי — can_move"""
 import pytest
-from domain.piece import King, Rook, Bishop, Queen, Knight, Pawn, create_piece
-from domain.board import EMPTY_CELL
+from core.domain.piece import King, Rook, Bishop, Queen, Knight, Pawn, create_piece
+from core.domain.board import EMPTY_CELL
 
 
 def empty(rows, cols):

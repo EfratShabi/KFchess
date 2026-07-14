@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """טסטים ל-Movement ו-Jump"""
-from domain.movement import Movement
-from domain.jump import Jump
+from core.domain.movement import Movement
+from core.domain.jump import Jump
 
 
 # ──────────────────────────────

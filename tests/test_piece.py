@@ -1,5 +1,5 @@
-from domain.piece import Rook, Bishop, Pawn, Knight, King, Queen, create_piece
-from domain.board import EMPTY_CELL
+from core.domain.piece import Rook, Bishop, Pawn, Knight, King, Queen, create_piece
+from core.domain.board import EMPTY_CELL
 
 def test_rook_straight_move():
     """צריח יכול לנוע בקו ישר"""
