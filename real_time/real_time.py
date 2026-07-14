@@ -53,12 +53,7 @@ class RealTime:
             return
         self._land_move(movement, board)
 
-
-
-    def _find_jump_at(self, cell):
-        return next((j for j in self.jumps if j.cell == cell), None)
-
-
+    #הכלי נלכד באויר
     def _capture_midair(self, jump, movement, board):
         self.jumps.remove(jump)          # הכלי הקופץ נשאר במקומו - רק מסירים אותו מרשימת "באוויר"
         board.clear_cell(*movement.start)   # הכלי המגיע נעלם לגמרי
