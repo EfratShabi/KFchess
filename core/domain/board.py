@@ -1,6 +1,6 @@
+from core.config.constants import WHITE_COLOR, BLACK_COLOR
+
 EMPTY_CELL = '.'
-WHITE_COLOR = 'w'
-BLACK_COLOR = 'b'
 MS_PER_CELL = 1000
 
 

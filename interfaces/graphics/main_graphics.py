@@ -1,4 +1,4 @@
-from core.domain.board import Board
+from core.domain.board_factory import create_standard_board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
 from interfaces.shared.input_controller import InputController
@@ -6,16 +6,7 @@ from interfaces.graphics.board_renderer import BoardRenderer
 
 
 def main():
-    grid = [["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
-            ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
-            [".", ".", ".", ".", ".", ".", ".", "."],
-            [".", ".", ".", ".", ".", ".", ".", "."],
-            [".", ".", ".", ".", ".", ".", ".", "."],
-            [".", ".", ".", ".", ".", ".", ".", "."],
-            ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
-            ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"]]
-
-    board = Board(grid)
+    board = create_standard_board()
     state = RealTime()
     service = GameService(board, state)
     renderer = BoardRenderer()

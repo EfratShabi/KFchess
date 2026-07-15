@@ -1,3 +1,7 @@
+# Player colors
+WHITE_COLOR = 'w'
+BLACK_COLOR = 'b'
+
 # Command types
 COMMANDS = {
     'CLICK': 'click',

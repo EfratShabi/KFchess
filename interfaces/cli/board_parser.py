@@ -2,6 +2,7 @@ import sys
 from core.config import errors
 
 def check_valid_token(chess):
+    #להזיז לקונסט
     valid_char = {
         '.', 
         'wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 

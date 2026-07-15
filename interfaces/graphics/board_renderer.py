@@ -2,6 +2,10 @@ import os
 from interfaces.graphics.image_commands import Img
 from interfaces.shared.pixel_math import cell_to_pixel
 from interfaces.shared.graphics_constants import CELL_SIZE, BOARD_SIZE, BOARD_IMAGE_PATH
+from core.domain.board import EMPTY_CELL
+from core.config.constants import WHITE_COLOR, BLACK_COLOR
+
+FOLDER_COLOR = {WHITE_COLOR: 'W', BLACK_COLOR: 'B'}
 
 
 class BoardRenderer:
@@ -18,16 +22,22 @@ class BoardRenderer:
         self.draw_empty_board()
         for row_idx, row in enumerate(grid):
             for col_idx, piece_str in enumerate(row):
-                if piece_str and piece_str != '.':
+                if piece_str and piece_str != EMPTY_CELL:
                     self.draw_piece(piece_str, row_idx, col_idx)
         return self
+    
+    def get_sprite_path(self, piece_name, state="idle", frame="1"):
+        return os.path.join(
+            self.assets_path, "pieces1", piece_name, "states", state, "sprites", f"{frame}.png")
 
-    def draw_piece(self, piece_str, row, col):
+
+    def draw_piece(self, piece_str, row, col, state="idle", frame="1"):
         color, kind = piece_str[0], piece_str[1]
-        folder = kind + ('W' if color == 'w' else 'B')
-        piece_path = os.path.join(
-            self.assets_path, "pieces1", folder, "states", "idle", "sprites", "1.png"
-        )
+        folder = kind + FOLDER_COLOR[color] 
+        
+        piece_path = self.get_sprite_path(folder, state=state, frame=frame)
+        
+        # 3. טעינה וציור
         piece_img = Img().read(piece_path, size=(CELL_SIZE, CELL_SIZE), keep_aspect=True)
         x, y = cell_to_pixel(row, col, cell_size=CELL_SIZE)
         piece_img.draw_on(self.canvas, x, y)
@@ -35,6 +45,7 @@ class BoardRenderer:
 
     def show(self):
         self.canvas.show()
+
 
 
 if __name__ == "__main__":

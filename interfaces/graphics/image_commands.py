@@ -35,8 +35,8 @@ class Img:
             `self`, so you can chain:  `sprite = Img().read("foo.png", (64,64))`
         """
         path = str(path)
-        self.img = cv2.imread(path) 
-        #self.img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        #self.img = cv2.imread(path) 
+        self.img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
         if self.img is None:
             raise FileNotFoundError(f"Cannot load image: {path}")
 
