@@ -1,0 +1,3 @@
+CELL_SIZE = 100
+BOARD_SIZE = 8
+BOARD_IMAGE_PATH = "assets/board.png"

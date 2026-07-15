@@ -3,7 +3,7 @@ import pytest
 from core.domain.board import Board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
-from interfaces.graphics.input_controller import InputController
+from interfaces.shared.input_controller import InputController
 
 
 def grid(*rows):

@@ -1,4 +1,4 @@
-CELL_SIZE = 100
+from interfaces.shared.graphics_constants import CELL_SIZE
 
 def pixel_to_cell(x, y):
     col = x // CELL_SIZE

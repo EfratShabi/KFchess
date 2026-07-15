@@ -18,6 +18,9 @@ class GameService:
     def get_board_string(self):
         return str(self.board)
 
+    def get_board_grid(self):
+        return self.board.grid
+
     def is_game_over(self):
         return self.state.game_over
 
