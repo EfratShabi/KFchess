@@ -5,7 +5,7 @@ def pixel_to_cell(x, y):
     row = y // CELL_SIZE
     return row, col
 
-def cell_to_pixel(row, col, cell_size=100, offset_x=0, offset_y=0):
+def cell_to_pixel(row, col, cell_size, offset_x=0, offset_y=0):
     x = offset_x + (col * cell_size)
     y = offset_y + (row * cell_size)
     return x, y

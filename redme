@@ -1,0 +1,24 @@
+Project Context: Real-Time Chess Engine (v. Final)
+Current Status:
+I am currently working on the Graphical Interface (GUI) integration using OpenCV (cv2). The game engine logic (domain and services) is already implemented and supports:
+
+Rules: Standard movement, pawn special rules (2-step start, promotion, diagonal capture), and king capture (game over).
+
+Real-time Mechanics: Moves take time, jumping mechanics (1000ms), mid-air capture logic, and movement conflicts.
+
+Project Structure:
+
+core/: Domain models (Board, Pieces), Services (GameService), and Config.
+
+interfaces/graphics/: BoardRenderer (using cv2 and a custom Img wrapper), ui_main.py (main loop), and ui_events.py (InputController).
+
+interfaces/shared/: Helper functions like pixel_to_cell / cell_to_pixel.
+
+Current Task:
+I am actively implementing the GUI. I have successfully integrated cv2.setMouseCallback to handle inputs via InputController. I am currently debugging the rendering logic:
+
+Aligning sprites correctly in the grid (using cell_to_pixel).
+
+Fixing alpha-channel transparency (rendering pieces without white backgrounds).
+
+Key Constraint: I am not using game libraries like Pygame. All rendering is done via OpenCV imshow and manual canvas manipulation using the Img class.

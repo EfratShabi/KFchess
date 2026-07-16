@@ -29,16 +29,21 @@ class GameService:
             return False
         if self.board.is_empty(row, col):
             return False
-        if self.state.is_moving(row, col) or self.state.is_jumping(row, col):
+        if self._is_busy(row, col):
             return False
         piece_str = self.board.get_piece_str(row, col)
         self.state.register_jump(Position(row, col), piece_str)
         return True
 
     def try_move(self, start, end):
+        if self._is_busy(*start):
+            return False
         piece_str = self.board.get_piece_str(*start)
         if not self.rules.is_valid_move(self.board.grid, piece_str, start, end):
             return False
         distance = self.rules.calc_distance(start, end)
         self.state.register_move(start, end, piece_str, distance)
         return True
+
+    def _is_busy(self, row, col):
+        return self.state.is_moving(row, col) or self.state.is_jumping(row, col) or self.state.is_resting(row, col)

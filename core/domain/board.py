@@ -1,7 +1,5 @@
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
-
-EMPTY_CELL = '.'
-MS_PER_CELL = 1000
+from core.config.constants import EMPTY_CELL
 
 
 class Board:

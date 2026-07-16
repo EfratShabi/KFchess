@@ -1,5 +1,5 @@
 from interfaces.shared.pixel_math import pixel_to_cell
-
+import cv2
 
 class InputController:
     def __init__(self, game_service, board):
@@ -26,6 +26,7 @@ class InputController:
     def handle_jump(self, x, y):
         row, col = pixel_to_cell(x, y)
         self.game_service.try_jump(row, col)
+        self.selected_piece = None
 
     def _select(self, pos):
         if not self.board.is_empty(*pos):
@@ -39,3 +40,10 @@ class InputController:
         if self.board.is_empty(*pos):
             return False
         return self.board.get_piece_color(*pos) == self.board.get_piece_color(*self.selected_piece)
+    
+
+    def mouse_callback(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.handle_click(x, y)
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            self.handle_jump(x, y)

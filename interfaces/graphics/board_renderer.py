@@ -2,8 +2,7 @@ import os
 from interfaces.graphics.image_commands import Img
 from interfaces.shared.pixel_math import cell_to_pixel
 from interfaces.shared.graphics_constants import CELL_SIZE, BOARD_SIZE, BOARD_IMAGE_PATH
-from core.domain.board import EMPTY_CELL
-from core.config.constants import WHITE_COLOR, BLACK_COLOR
+from core.config.constants import WHITE_COLOR, BLACK_COLOR,EMPTY_CELL
 
 FOLDER_COLOR = {WHITE_COLOR: 'W', BLACK_COLOR: 'B'}
 
@@ -37,9 +36,11 @@ class BoardRenderer:
         
         piece_path = self.get_sprite_path(folder, state=state, frame=frame)
         
-        # 3. טעינה וציור
         piece_img = Img().read(piece_path, size=(CELL_SIZE, CELL_SIZE), keep_aspect=True)
         x, y = cell_to_pixel(row, col, cell_size=CELL_SIZE)
+        h, w = piece_img.img.shape[:2]
+        x += (CELL_SIZE - w) // 2
+        y += (CELL_SIZE - h) // 2
         piece_img.draw_on(self.canvas, x, y)
         return self
 

@@ -52,6 +52,13 @@ class Img:
 
             self.img = cv2.resize(self.img, (new_w, new_h), interpolation=interpolation)
 
+        if self.img.shape[2] == 3:
+            self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2BGRA)
+            gray = cv2.cvtColor(self.img[:, :, :3], cv2.COLOR_BGR2GRAY).astype(np.float32)
+            low, high = 250.0, 255.0
+            alpha = np.clip((high - gray) / (high - low), 0.0, 1.0) * 255.0
+            self.img[:, :, 3] = alpha.astype(np.uint8)
+
         return self
 
     def draw_on(self, other_img, x, y):
