@@ -3,6 +3,8 @@ from core.domain.movement import Movement
 from core.domain.jump import Jump
 from core.domain.rest import Rest
 from core.domain.position import Position
+from core.domain.state_registry import STATE_REGISTRY
+from core.real_time.piece_state_tracker import PieceStateTracker
 
 
 
@@ -14,6 +16,13 @@ class RealTime:
         self.movements = []
         self.jumps = []
         self.rests = []
+        self.tracker = PieceStateTracker(STATE_REGISTRY)
+
+    def init_piece_states(self, board):
+        for row in range(board.rows):
+            for col in range(board.cols):
+                if not board.is_empty(row, col):
+                    self.tracker.set_state(Position(row, col), "idle", self.current_time)
 
     def is_moving(self, row, col):
         return any(m.start == Position(row, col) for m in self.movements)

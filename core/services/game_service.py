@@ -8,6 +8,7 @@ class GameService:
         self.board = board
         self.state = state
         self.rules = MovementRules()
+        self.state.init_piece_states(self.board) #אתחול מצבים לכלים בתחילת המשחק
 
     def process_wait(self, duration):
         if self.state.game_over:
