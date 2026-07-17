@@ -83,7 +83,6 @@ class RealTime:
 
         if movement.piece[1] == KING:
             self.game_over = True
-            print("The King was captured in mid-air! Game Over.")
 
 
 
@@ -91,7 +90,6 @@ class RealTime:
         target = board.get_piece_str(*movement.end)
         if target and target[1] == KING:
             self.game_over = True
-            print("The King was captured! Game Over.")
         board.set_piece(*movement.end, movement.piece)
         board.clear_cell(*movement.start)
         self._register_rest(movement.end, movement.piece, MOVE_COOLDOWN_MS)

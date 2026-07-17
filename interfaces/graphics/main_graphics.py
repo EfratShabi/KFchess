@@ -27,6 +27,8 @@ def main():
 
         service.process_wait(delta_ms)
         renderer.draw_board(service)
+        if service.is_game_over():
+            renderer.draw_game_over_message()
         cv2.imshow(window_name, renderer.canvas.img)
         if cv2.waitKey(1) & 0xFF == 27:
             break

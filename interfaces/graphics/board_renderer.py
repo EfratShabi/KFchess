@@ -59,6 +59,14 @@ class BoardRenderer:
         piece_img.draw_on(self.canvas, x, y)
         return self
 
+    def draw_game_over_message(self):
+        """מציירת הודעת 'Game Over' באדום, ממורכזת בקירוב על הלוח (150 הוא הזחה ידנית לפי רוחב הטקסט המשוער)."""
+        pixel_size = CELL_SIZE * BOARD_SIZE
+        self.canvas.put_text("Game Over", pixel_size // 2 - 150, pixel_size // 2,
+                              font_size=2, color=(0, 0, 255, 255), thickness=3)
+        return self
+
+
     def show(self):
         self.canvas.show()
 
