@@ -26,7 +26,7 @@ def main():
         last_tick = now
 
         service.process_wait(delta_ms)
-        renderer.draw_board(service.get_board_grid())
+        renderer.draw_board(service)
         cv2.imshow(window_name, renderer.canvas.img)
         if cv2.waitKey(1) & 0xFF == 27:
             break

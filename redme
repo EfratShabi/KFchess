@@ -19,6 +19,4 @@ I am actively implementing the GUI. I have successfully integrated cv2.setMouseC
 
 Aligning sprites correctly in the grid (using cell_to_pixel).
 
-Fixing alpha-channel transparency (rendering pieces without white backgrounds).
-
 Key Constraint: I am not using game libraries like Pygame. All rendering is done via OpenCV imshow and manual canvas manipulation using the Img class.

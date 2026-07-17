@@ -22,6 +22,12 @@ class GameService:
     def get_board_grid(self):
         return self.board.grid
 
+    def get_piece_state(self, row, col):
+        active = self.state.tracker.get_state(Position(row, col))
+        if active is None:
+            return None
+        return active.spec.name, active.elapsed_ms(self.state.current_time)
+
     def is_game_over(self):
         return self.state.game_over
 

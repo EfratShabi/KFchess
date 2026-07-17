@@ -40,10 +40,12 @@ class RealTime:
         duration = distance * MS_PER_CELL
         arrival_time = self.current_time + duration
         self.movements.append(Movement(piece, start, end, arrival_time))
+        self.tracker.set_state(start, "move", self.current_time)
 
     def register_jump(self, cell, piece):
         arrival_time = self.current_time + JUMP_DURATION_MS
         self.jumps.append(Jump(piece, cell, arrival_time))
+        self.tracker.set_state(cell, "jump", self.current_time)
 
     def _register_rest(self, position, piece, duration_ms):
         ready_at = self.current_time + duration_ms
@@ -62,6 +64,7 @@ class RealTime:
             self._register_rest(jump.cell, jump.piece, JUMP_COOLDOWN_MS)
             self.jumps.remove(jump)
         self.rests = [r for r in self.rests if r.is_ongoing_cooldown(self.current_time)]
+        self.tracker.advance(self.current_time)
 
 
    #האם הכלי נוחת בשלום, או שהוא נלכד באוויר על ידי כלי אחר?
@@ -90,5 +93,8 @@ class RealTime:
         board.set_piece(*movement.end, movement.piece)
         board.clear_cell(*movement.start)
         self._register_rest(movement.end, movement.piece, MOVE_COOLDOWN_MS)
+        next_state = self.tracker.get_state(movement.start).spec.next_state_when_finished
+        self.tracker.move_state(movement.start, movement.end)
+        self.tracker.set_state(movement.end, next_state, self.current_time)
 
 
