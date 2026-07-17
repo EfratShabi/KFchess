@@ -28,6 +28,12 @@ class GameService:
             return None
         return active.spec.name, active.elapsed_ms(self.state.current_time)
 
+    def get_piece_movement(self, row, col):
+        movement = self.state.get_movement(row, col)
+        if movement is None:
+            return None
+        return movement.start, movement.end, movement.progress(self.state.current_time)
+
     def is_game_over(self):
         return self.state.game_over
 

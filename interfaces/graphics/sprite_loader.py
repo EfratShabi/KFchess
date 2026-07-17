@@ -15,6 +15,13 @@ def get_frames_per_sec(assets_path, piece_name, state):
 
 
 def compute_frame_index(assets_path, piece_name, state, elapsed_ms):
+    """
+    מחשב את אינדקס הפריים הנוכחי לפי זמן שחלף.
+    
+    הערה: ה-1000 הוא קבוע המרת מילי-שניות לשניות.
+    ה-'+ 1' מבצע התאמה למיסוי קבצים שמתחיל ב-1 (1-based index).
+    """
+    
     fps = get_frames_per_sec(assets_path, piece_name, state)
     frame_count = get_frame_count(assets_path, piece_name, state)
     frame_idx = int(elapsed_ms / 1000 * fps)

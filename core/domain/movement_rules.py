@@ -3,7 +3,6 @@ from core.domain.piece import create_piece
 
 
 class MovementRules:
-#בדיקות על התנועה-ולידציה
     def is_valid_move(self, board, piece_str, start, end):
         if self._is_same_cell(start, end):
             return False

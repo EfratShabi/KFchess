@@ -7,7 +7,6 @@ from core.domain.state_registry import STATE_REGISTRY
 from core.real_time.piece_state_tracker import PieceStateTracker
 
 
-
 class RealTime:
     def __init__(self):
         self.current_time = 0
@@ -27,6 +26,9 @@ class RealTime:
     def is_moving(self, row, col):
         return any(m.start == Position(row, col) for m in self.movements)
 
+    def get_movement(self, row, col):
+        return next((m for m in self.movements if m.start == Position(row, col)), None)
+
     def is_jumping(self, row, col):
         return any(j.cell == Position(row, col) for j in self.jumps)
 
@@ -38,8 +40,9 @@ class RealTime:
 
     def register_move(self, start, end, piece, distance):
         duration = distance * MS_PER_CELL
+        start_time = self.current_time
         arrival_time = self.current_time + duration
-        self.movements.append(Movement(piece, start, end, arrival_time))
+        self.movements.append(Movement(piece, start, end, start_time, arrival_time))
         self.tracker.set_state(start, "move", self.current_time)
 
     def register_jump(self, cell, piece):
@@ -67,7 +70,6 @@ class RealTime:
         self.tracker.advance(self.current_time)
 
 
-   #האם הכלי נוחת בשלום, או שהוא נלכד באוויר על ידי כלי אחר?
     def _resolve_movement(self, movement, board):
         landing_jump = next((j for j in self.jumps if j.intercepts(movement)), None)
         if landing_jump is not None:
@@ -75,14 +77,14 @@ class RealTime:
             return
         self._land_move(movement, board)
 
-    #הכלי נלכד באויר
     def _capture_midair(self, jump, movement, board):
-        self.jumps.remove(jump)          # הכלי הקופץ נשאר במקומו - רק מסירים אותו מרשימת "באוויר"
-        board.clear_cell(*movement.start)   # הכלי המגיע נעלם לגמרי
+        self.jumps.remove(jump) 
+        board.clear_cell(*movement.start)  
 
         if movement.piece[1] == KING:
             self.game_over = True
             print("The King was captured in mid-air! Game Over.")
+
 
 
     def _land_move(self, movement, board):
