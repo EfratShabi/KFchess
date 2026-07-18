@@ -32,6 +32,15 @@ BISHOP = 'B'
 KNIGHT = 'N'
 PAWN = 'P'
 
+# Points awarded for capturing each piece kind (king excluded - capturing it ends the game)
+PIECE_VALUES = {
+    QUEEN: 9,
+    ROOK: 5,
+    BISHOP: 3,
+    KNIGHT: 3,
+    PAWN: 1,
+}
+
 
 
 EMPTY_CELL = '.'

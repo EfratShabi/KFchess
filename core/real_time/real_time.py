@@ -1,4 +1,7 @@
-from core.config.constants import MS_PER_CELL, JUMP_DURATION_MS, KING, MOVE_COOLDOWN_MS, JUMP_COOLDOWN_MS
+from core.config.constants import (
+    MS_PER_CELL, JUMP_DURATION_MS, KING, MOVE_COOLDOWN_MS, JUMP_COOLDOWN_MS,
+    WHITE_COLOR, BLACK_COLOR, PIECE_VALUES,
+)
 from core.domain.movement import Movement
 from core.domain.jump import Jump
 from core.domain.rest import Rest
@@ -11,6 +14,7 @@ class RealTime:
     def __init__(self):
         self.current_time = 0
         self.game_over = False
+        self.scores = {WHITE_COLOR: 0, BLACK_COLOR: 0}
 
         self.movements = []
         self.jumps = []
@@ -37,6 +41,9 @@ class RealTime:
 
     def advance_time(self, ms):
         self.current_time += ms
+
+    def add_score(self, color, points):
+        self.scores[color] += points
 
     def register_move(self, start, end, piece, distance):
         duration = distance * MS_PER_CELL
@@ -78,18 +85,21 @@ class RealTime:
         self._land_move(movement, board)
 
     def _capture_midair(self, jump, movement, board):
-        self.jumps.remove(jump) 
-        board.clear_cell(*movement.start)  
+        self.jumps.remove(jump)
+        board.clear_cell(*movement.start)
 
         if movement.piece[1] == KING:
             self.game_over = True
-
-
+        else:
+            self.add_score(jump.piece[0], PIECE_VALUES[movement.piece[1]])
 
     def _land_move(self, movement, board):
         target = board.get_piece_str(*movement.end)
-        if target and target[1] == KING:
-            self.game_over = True
+        if target:
+            if target[1] == KING:
+                self.game_over = True
+            else:
+                self.add_score(movement.piece[0], PIECE_VALUES[target[1]])
         board.set_piece(*movement.end, movement.piece)
         board.clear_cell(*movement.start)
         self._register_rest(movement.end, movement.piece, MOVE_COOLDOWN_MS)

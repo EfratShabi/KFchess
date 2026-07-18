@@ -37,6 +37,9 @@ class GameService:
     def is_game_over(self):
         return self.state.game_over
 
+    def get_scores(self):
+        return self.state.scores
+
     def try_jump(self, row, col):
         if not self.board.is_in_bounds(row, col):
             return False

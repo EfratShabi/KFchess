@@ -2,7 +2,7 @@ import os
 from interfaces.graphics.image_commands import Img
 from interfaces.graphics.sprite_loader import compute_frame_index
 from interfaces.shared.pixel_math import cell_to_pixel, interpolate_pixel
-from interfaces.shared.graphics_constants import CELL_SIZE, BOARD_SIZE, BOARD_IMAGE_PATH
+from interfaces.shared.graphics_constants import CELL_SIZE, BOARD_SIZE, BOARD_IMAGE_PATH, PIECES_FOLDER
 from core.config.constants import WHITE_COLOR, BLACK_COLOR,EMPTY_CELL
 
 FOLDER_COLOR = {WHITE_COLOR: 'W', BLACK_COLOR: 'B'}
@@ -39,7 +39,7 @@ class BoardRenderer:
 
     def get_sprite_path(self, piece_name, state, frame):
         return os.path.join(
-            self.assets_path, "pieces1", piece_name, "states", state, "sprites", f"{frame}.png")
+            self.assets_path, PIECES_FOLDER, piece_name, "states", state, "sprites", f"{frame}.png")
 
 
     def draw_piece(self, piece_str, x, y, state, elapsed_ms):
@@ -57,6 +57,14 @@ class BoardRenderer:
         x = int(x) + (CELL_SIZE - w) // 2
         y = int(y) + (CELL_SIZE - h) // 2
         piece_img.draw_on(self.canvas, x, y)
+        return self
+
+    def draw_scores(self, service):
+        scores = service.get_scores()
+        self.canvas.put_text(f"White: {scores[WHITE_COLOR]}", 10, 30,
+                              font_size=1, color=(255, 255, 255, 255), thickness=2)
+        self.canvas.put_text(f"Black: {scores[BLACK_COLOR]}", CELL_SIZE * BOARD_SIZE - 160, 30,
+                              font_size=1, color=(255, 255, 255, 255), thickness=2)
         return self
 
     def draw_game_over_message(self):

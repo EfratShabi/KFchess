@@ -1,14 +1,15 @@
 import os
 import json
+from interfaces.shared.graphics_constants import PIECES_FOLDER
 
 
 def get_frame_count(assets_path, piece_name, state):
-    sprites_dir = os.path.join(assets_path, "pieces1", piece_name, "states", state, "sprites")
+    sprites_dir = os.path.join(assets_path, PIECES_FOLDER, piece_name, "states", state, "sprites")
     return len(os.listdir(sprites_dir))
 
 
 def get_frames_per_sec(assets_path, piece_name, state):
-    config_path = os.path.join(assets_path, "pieces1", piece_name, "states", state, "config.json")
+    config_path = os.path.join(assets_path, PIECES_FOLDER, piece_name, "states", state, "config.json")
     with open(config_path) as f:
         config = json.load(f)
     return config["graphics"]["frames_per_sec"]

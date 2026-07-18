@@ -1,3 +1,6 @@
-CELL_SIZE = 100
+CELL_SIZE = 80
+
 BOARD_SIZE = 8
 BOARD_IMAGE_PATH = "assets/board.png"
+PIECES_FOLDER = "pieces1"
+ESC_KEY = 27

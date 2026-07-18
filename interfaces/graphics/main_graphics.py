@@ -5,6 +5,7 @@ from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
 from interfaces.graphics.board_renderer import BoardRenderer
 from interfaces.shared.input_controller import InputController
+from interfaces.shared.graphics_constants import ESC_KEY
 
 
 
@@ -27,10 +28,11 @@ def main():
 
         service.process_wait(delta_ms)
         renderer.draw_board(service)
+        renderer.draw_scores(service)
         if service.is_game_over():
             renderer.draw_game_over_message()
         cv2.imshow(window_name, renderer.canvas.img)
-        if cv2.waitKey(1) & 0xFF == 27:
+        if cv2.waitKey(1) & 0xFF == ESC_KEY:
             break
 
 if __name__ == "__main__":
