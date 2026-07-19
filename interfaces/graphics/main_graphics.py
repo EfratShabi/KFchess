@@ -29,6 +29,7 @@ def main():
         service.process_wait(delta_ms)
         renderer.draw_board(service)
         renderer.draw_scores(service)
+        renderer.draw_event_log(service)
         if service.is_game_over():
             renderer.draw_game_over_message()
         cv2.imshow(window_name, renderer.canvas.img)

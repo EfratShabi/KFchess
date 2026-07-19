@@ -2,6 +2,7 @@ from core.real_time.real_time import RealTime
 from core.domain.movement_rules import MovementRules
 from core.domain.position import Position
 from core.domain.time_span import TimeSpan
+from core.services.game_logger import GameLogger
 
 
 class GameService:
@@ -9,6 +10,8 @@ class GameService:
         self.board = board
         self.state = state
         self.rules = MovementRules()
+        self.logger = GameLogger()
+        self.state.add_observer(self.logger)
         self.state.init_piece_states(self.board) #אתחול מצבים לכלים בתחילת המשחק
 
     def process_wait(self, duration):
@@ -42,6 +45,9 @@ class GameService:
 
     def get_scores(self):
         return self.state.scores
+
+    def get_event_log(self):
+        return self.logger.entries
 
     def try_jump(self, row, col):
         if not self.board.is_in_bounds(row, col):

@@ -1,4 +1,5 @@
 from interfaces.shared.pixel_math import pixel_to_cell
+from interfaces.shared.graphics_constants import BOARD_OFFSET_X, BOARD_OFFSET_Y
 import cv2
 
 class InputController:
@@ -7,7 +8,7 @@ class InputController:
         self.selected_piece = None
 
     def handle_click(self, x, y):
-        pos = pixel_to_cell(x, y)
+        pos = pixel_to_cell(x - BOARD_OFFSET_X, y - BOARD_OFFSET_Y)
         if not self.game_service.board.is_in_bounds(*pos):
             return
         if self._is_busy(pos):
@@ -23,7 +24,7 @@ class InputController:
         self.selected_piece = None
 
     def handle_jump(self, x, y):
-        row, col = pixel_to_cell(x, y)
+        row, col = pixel_to_cell(x - BOARD_OFFSET_X, y - BOARD_OFFSET_Y)
         self.game_service.try_jump(row, col)
         self.selected_piece = None
 

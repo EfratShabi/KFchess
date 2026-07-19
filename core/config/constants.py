@@ -37,6 +37,16 @@ PIECE_VALUES = {
     PAWN: 1,
 }
 
+# Full piece names for display (avoids the BISHOP/BLACK 'B' collision in logs)
+PIECE_NAMES = {
+    KING: "King",
+    QUEEN: "Queen",
+    ROOK: "Rook",
+    BISHOP: "Bishop",
+    KNIGHT: "Knight",
+    PAWN: "Pawn",
+}
+
 
 
 EMPTY_CELL = '.'

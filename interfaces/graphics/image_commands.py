@@ -9,6 +9,12 @@ class Img:
     def __init__(self):
         self.img = None
 
+    @staticmethod
+    def blank(width, height, color=(0, 0, 0, 255)):
+        img = Img()
+        img.img = np.full((height, width, 4), color, dtype=np.uint8)
+        return img
+
     def read(self, path: str | pathlib.Path,
              size: tuple[int, int] | None = None,
              keep_aspect: bool = False,

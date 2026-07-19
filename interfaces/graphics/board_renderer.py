@@ -5,6 +5,8 @@ from interfaces.shared.pixel_math import cell_to_pixel, interpolate_pixel
 from interfaces.shared.graphics_constants import (
     CELL_SIZE, BOARD_SIZE, BOARD_IMAGE_PATH, PIECES_FOLDER,
     TEXT_COLOR_WHITE, TEXT_COLOR_RED,
+    CANVAS_WIDTH, CANVAS_HEIGHT, BOARD_OFFSET_X, BOARD_OFFSET_Y,
+    LOG_PANEL_X, LOG_LINE_HEIGHT, LOG_FONT_SIZE,
 )
 from core.config.constants import WHITE_COLOR, BLACK_COLOR,EMPTY_CELL
 from core.domain.time_span import TimeSpan
@@ -18,8 +20,10 @@ class BoardRenderer:
         self.canvas = None
 
     def draw_empty_board(self):
-        pixel_size = CELL_SIZE * BOARD_SIZE
-        self.canvas = Img().read(BOARD_IMAGE_PATH, size=(pixel_size, pixel_size))
+        board_pixel_size = CELL_SIZE * BOARD_SIZE
+        self.canvas = Img.blank(CANVAS_WIDTH, CANVAS_HEIGHT)
+        board_img = Img().read(BOARD_IMAGE_PATH, size=(board_pixel_size, board_pixel_size))
+        board_img.draw_on(self.canvas, BOARD_OFFSET_X, BOARD_OFFSET_Y)
         return self
 
     def draw_board(self, service):
@@ -33,9 +37,11 @@ class BoardRenderer:
                     movement = service.get_piece_movement(row_idx, col_idx)
                     if movement is not None:
                         start, end, progress = movement
-                        x, y = interpolate_pixel(start, end, progress, cell_size=CELL_SIZE)
+                        x, y = interpolate_pixel(start, end, progress, cell_size=CELL_SIZE,
+                                                  offset_x=BOARD_OFFSET_X, offset_y=BOARD_OFFSET_Y)
                     else:
-                        x, y = cell_to_pixel(row_idx, col_idx, cell_size=CELL_SIZE)
+                        x, y = cell_to_pixel(row_idx, col_idx, cell_size=CELL_SIZE,
+                                              offset_x=BOARD_OFFSET_X, offset_y=BOARD_OFFSET_Y)
 
                     self.draw_piece(piece_str, x, y, state=state_name, time_span=time_span)
         return self
@@ -70,10 +76,24 @@ class BoardRenderer:
                               font_size=1, color=TEXT_COLOR_WHITE, thickness=2)
         return self
 
+    def draw_event_log(self, service):
+        log = service.get_event_log()
+        header_y = BOARD_OFFSET_Y + LOG_LINE_HEIGHT
+        self.canvas.put_text("Moves Log", LOG_PANEL_X, header_y,
+                              font_size=LOG_FONT_SIZE, color=TEXT_COLOR_WHITE, thickness=1)
+
+        max_lines = (CANVAS_HEIGHT - BOARD_OFFSET_Y) // LOG_LINE_HEIGHT - 1
+        visible = log[-max_lines:]
+        for i, line in enumerate(visible):
+            y = header_y + (i + 1) * LOG_LINE_HEIGHT
+            self.canvas.put_text(line, LOG_PANEL_X, y,
+                                  font_size=LOG_FONT_SIZE, color=TEXT_COLOR_WHITE, thickness=1)
+        return self
+
     def draw_game_over_message(self):
         """מציירת הודעת 'Game Over' באדום, ממורכזת בקירוב על הלוח (150 הוא הזחה ידנית לפי רוחב הטקסט המשוער)."""
         pixel_size = CELL_SIZE * BOARD_SIZE
-        self.canvas.put_text("Game Over", pixel_size // 2 - 150, pixel_size // 2,
+        self.canvas.put_text("Game Over", pixel_size // 2 - 150, BOARD_OFFSET_Y + pixel_size // 2,
                               font_size=2, color=TEXT_COLOR_RED, thickness=3)
         return self
 
