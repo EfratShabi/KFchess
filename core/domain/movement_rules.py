@@ -19,6 +19,3 @@ class MovementRules:
         er, ec = end
         target = board[er][ec]
         return target != EMPTY_CELL and target[0] == piece_str[0]
-
-    def calc_distance(self, start, end):
-        return max(abs(end[0] - start[0]), abs(end[1] - start[1]))

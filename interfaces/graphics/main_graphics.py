@@ -15,7 +15,7 @@ def main():
     service = GameService(board, state)
     renderer = BoardRenderer()
 
-    controller = InputController(service, board)
+    controller = InputController(service)
     window_name = "KF Chess"
     cv2.namedWindow(window_name)
     cv2.setMouseCallback(window_name, controller.mouse_callback)

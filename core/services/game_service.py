@@ -21,12 +21,14 @@ class GameService:
 
     def get_board_grid(self):
         return self.board.grid
-
+    
+    #מחזירה טאפל של (משך זמן שעבר, שם המצב)
     def get_piece_state(self, row, col):
         active = self.state.tracker.get_state(Position(row, col))
         if active is None:
             return None
         return active.spec.name, active.elapsed_ms(self.state.current_time)
+
 
     def get_piece_movement(self, row, col):
         movement = self.state.get_movement(row, col)
@@ -57,9 +59,10 @@ class GameService:
         piece_str = self.board.get_piece_str(*start)
         if not self.rules.is_valid_move(self.board.grid, piece_str, start, end):
             return False
-        distance = self.rules.calc_distance(start, end)
+        distance = Position.distance(start, end)
         self.state.register_move(start, end, piece_str, distance)
         return True
 
     def _is_busy(self, row, col):
-        return self.state.is_moving(row, col) or self.state.is_jumping(row, col) or self.state.is_resting(row, col)
+        state = self.state.tracker.get_state(Position(row, col))
+        return state is not None and state.spec.name != "idle"

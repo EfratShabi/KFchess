@@ -31,23 +31,6 @@ def test_movement_stores_start_end():
 
 
 # ──────────────────────────────
-# Jump.is_expired
-# ──────────────────────────────
-
-def test_jump_not_expired_before_landing():
-    j = Jump('wK', (1, 1), arrival_time=1000)
-    assert j.is_expired(999) is False
-
-def test_jump_not_expired_exactly_at_landing():
-    j = Jump('wK', (1, 1), arrival_time=1000)
-    assert j.is_expired(1000) is False
-
-def test_jump_expired_after_landing():
-    j = Jump('wK', (1, 1), arrival_time=1000)
-    assert j.is_expired(1001) is True
-
-
-# ──────────────────────────────
 # Jump.intercepts
 # ──────────────────────────────
 

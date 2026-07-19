@@ -26,7 +26,6 @@ class BoardRenderer:
                 if piece_str and piece_str != EMPTY_CELL:
                     piece_state = service.get_piece_state(row_idx, col_idx)
                     state_name, elapsed_ms = piece_state if piece_state else ("idle", 0)
-
                     movement = service.get_piece_movement(row_idx, col_idx)
                     if movement is not None:
                         start, end, progress = movement

@@ -16,3 +16,9 @@ class Position:
     def __iter__(self):
         yield self.row
         yield self.col
+
+    @staticmethod
+    def distance(start, end):
+        sr, sc = start
+        er, ec = end
+        return max(abs(er - sr), abs(ec - sc))

@@ -18,7 +18,7 @@ def main():
     board = Board(chess)
     state = RealTime()
     service = GameService(board, state)
-    controller = InputController(service, board)
+    controller = InputController(service)
 
     for line in commands:
         parts = line.split()

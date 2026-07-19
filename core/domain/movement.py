@@ -15,5 +15,6 @@ class Movement:
         duration = self.arrival_time - self.start_time
         if duration <= 0:
             return 1.0
+            
         ratio = (current_time - self.start_time) / duration
         return max(0.0, min(1.0, ratio))

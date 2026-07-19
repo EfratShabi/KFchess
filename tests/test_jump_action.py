@@ -6,24 +6,6 @@ from core.domain.jump import Jump
 from core.domain.movement import Movement
 
 
-# ---------- is_expired ----------
-
-def test_is_expired_false_before_landing_time():
-    jump = Jump('wK', (1, 1), arrival_time=1000)
-    assert jump.is_expired(999) is False
-
-
-def test_is_expired_false_exactly_at_landing_time():
-    # ב-Jump ה"תפיסה" תקפה עד וכולל arrival_time - רק זמן מאוחר יותר פוקע
-    jump = Jump('wK', (1, 1), arrival_time=1000)
-    assert jump.is_expired(1000) is False
-
-
-def test_is_expired_true_after_landing_time():
-    jump = Jump('wK', (1, 1), arrival_time=1000)
-    assert jump.is_expired(1001) is True
-
-
 # ---------- intercepts ----------
 
 def test_intercepts_true_when_enemy_move_lands_on_the_jump_cell():

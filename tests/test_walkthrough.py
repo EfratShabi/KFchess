@@ -14,7 +14,7 @@ def make_service(*rows):
     board = Board(grid(*rows))
     state = RealTime()
     svc = GameService(board, state)
-    ctrl = InputController(svc, board)
+    ctrl = InputController(svc)
     return svc, ctrl
 
 

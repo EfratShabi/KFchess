@@ -5,7 +5,6 @@ from core.domain.state_spec import StateSpec
 @dataclass
 class ActiveState:
     spec: StateSpec
-    #מתי נכנסתי למצב הקיים
     entered_at: int
 
     def elapsed_ms(self, current_time):

@@ -2,14 +2,13 @@ from interfaces.shared.pixel_math import pixel_to_cell
 import cv2
 
 class InputController:
-    def __init__(self, game_service, board):
+    def __init__(self, game_service):
         self.game_service = game_service
-        self.board = board
         self.selected_piece = None
 
     def handle_click(self, x, y):
         pos = pixel_to_cell(x, y)
-        if not self.board.is_in_bounds(*pos):
+        if not self.game_service.board.is_in_bounds(*pos):
             return
         if self._is_busy(pos):
             self.selected_piece = None
@@ -29,7 +28,7 @@ class InputController:
         self.selected_piece = None
 
     def _select(self, pos):
-        if not self.board.is_empty(*pos):
+        if not self.game_service.board.is_empty(*pos):
             self.selected_piece = pos
 
     def _is_busy(self, pos):
@@ -37,9 +36,9 @@ class InputController:
         return self.game_service.state.is_moving(row, col)
 
     def _is_own_piece(self, pos):
-        if self.board.is_empty(*pos):
+        if self.game_service.board.is_empty(*pos):
             return False
-        return self.board.get_piece_color(*pos) == self.board.get_piece_color(*self.selected_piece)
+        return self.game_service.board.get_piece_color(*pos) == self.game_service.board.get_piece_color(*self.selected_piece)
     
 
     def mouse_callback(self, event, x, y, flags, param):
