@@ -1,7 +1,6 @@
 from core.domain.active_state import ActiveState
 
 
-#המצב של כל כלי שנמצא במצב מסויים מתוך הSTATE_REGISTRY
 class PieceStateTracker:
     def __init__(self, registry):
         self.registry = registry

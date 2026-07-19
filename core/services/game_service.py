@@ -1,6 +1,7 @@
 from core.real_time.real_time import RealTime
 from core.domain.movement_rules import MovementRules
 from core.domain.position import Position
+from core.domain.time_span import TimeSpan
 
 
 class GameService:
@@ -22,12 +23,12 @@ class GameService:
     def get_board_grid(self):
         return self.board.grid
     
-    #מחזירה טאפל של (משך זמן שעבר, שם המצב)
+    #מחזירה טאפל של (שם המצב, פרק הזמן שבו הוא נכנס למצב + הזמן הנוכחי)
     def get_piece_state(self, row, col):
         active = self.state.tracker.get_state(Position(row, col))
         if active is None:
             return None
-        return active.spec.name, active.elapsed_ms(self.state.current_time)
+        return active.spec.name, TimeSpan(active.entered_at, self.state.current_time)
 
 
     def get_piece_movement(self, row, col):

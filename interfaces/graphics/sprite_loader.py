@@ -1,13 +1,16 @@
 import os
 import json
+from functools import lru_cache
 from interfaces.shared.graphics_constants import PIECES_FOLDER
 
 
+@lru_cache(maxsize=None)
 def get_frame_count(assets_path, piece_name, state):
     sprites_dir = os.path.join(assets_path, PIECES_FOLDER, piece_name, "states", state, "sprites")
     return len(os.listdir(sprites_dir))
 
 
+@lru_cache(maxsize=None)
 def get_frames_per_sec(assets_path, piece_name, state):
     config_path = os.path.join(assets_path, PIECES_FOLDER, piece_name, "states", state, "config.json")
     with open(config_path) as f:
