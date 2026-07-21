@@ -46,6 +46,8 @@ class BoardRenderer:
                     self.draw_piece(piece_str, x, y, state=state_name, time_span=time_span)
         return self
 
+
+
     def get_sprite_path(self, piece_name, state, frame):
         return os.path.join(
             self.assets_path, PIECES_FOLDER, piece_name, "states", state, "sprites", f"{frame}.png")

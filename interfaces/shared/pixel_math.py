@@ -1,5 +1,7 @@
 from interfaces.shared.graphics_constants import CELL_SIZE
 
+# TODO: לבדוק בנפרד — test_walkthrough.py / test_game_service.py נכשלים גם ב-commit האחרון
+# ללא שום שינוי (מאומת עם git stash), החשד הוא כאן במיפוי פיקסל→תא. לא קשור לעבודת השרת.
 def pixel_to_cell(x, y):
     col = x // CELL_SIZE
     row = y // CELL_SIZE
