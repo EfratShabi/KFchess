@@ -49,3 +49,5 @@ When In Doubt
 Ask: "does this class know too much?"
 Ask: "would I need to change this file if the transport layer changed?"
 Ask: "is this string written in more than one place?"
+
+
