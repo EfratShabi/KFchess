@@ -1,14 +1,12 @@
 import queue
 
-import cv2
-
 import protocol
 from protocol import FIELDS, MSG_TYPES, ErrorMessage, MatchFound, NoOpponent, Ok, OpponentDisconnected, Snapshot
 from interfaces.graphics.board_renderer import BoardRenderer
 from interfaces.shared.client_state import ClientGameState
-from interfaces.shared.graphics_constants import ESC_KEY
 from interfaces.shared.network_client import NetworkClient
 from interfaces.shared.networked_input import NetworkedInputController
+from interfaces.shared.game_loop_runner import GameLoopRunner
 
 SERVER_URI = 'ws://localhost:8765'
 
@@ -71,23 +69,13 @@ def main():
     controller = NetworkedInputController(state, network_client, match.color)
     renderer = BoardRenderer()
 
-    window_name = "KF Chess (multiplayer)"
-    cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, controller.mouse_callback)
-
-    while True:
-        _drain_incoming(network_client, state)
-
-        renderer.draw_board(state)
-        renderer.draw_scores(state)
-        renderer.draw_event_log(state)
-        if state.is_game_over():
-            renderer.draw_game_over_message()
-        cv2.imshow(window_name, renderer.canvas.img)
-        if cv2.waitKey(1) & 0xFF == ESC_KEY:
-            break
-
-    cv2.destroyWindow(window_name)
+    GameLoopRunner(
+        window_name="KF Chess (multiplayer)",
+        renderer=renderer,
+        controller=controller,
+        state=state,
+        on_tick=lambda delta_ms: _drain_incoming(network_client, state),
+    ).run()
 
 
 if __name__ == '__main__':

@@ -1,91 +1,124 @@
-# Architectural Design Document: High-Scale Chess Server
+מסמך עיצוב ארכיטקטוני: שרת שחמט בקנה מידה רחב (גרסה סופית ומדויקת)
+1. מבוא ויעדי מערכת
+מסמך זה מתאר את הארכיטקטורה המשודרגת עבור שרת משחק השחמט, המתוכנן לתמוך בביצועים הבאים:
 
-## 1. Introduction & System Goals
-This document outlines the upgraded architectural design for the chess game server, engineered to support:
-*   **100 Million** registered users.
-*   **10 Million** concurrent active users (CCU).
-*   **5 Million** requests per second (approximately 1 Gigabyte/sec network throughput).
+100 מיליון משתמשים רשומים.
 
-To meet these high-scale demands, the system transitions from a localized, monolithic architecture to a distributed cloud architecture based on **Microservices** deployed inside lightweight **Docker containers**.
+10 מיליון משתמשים פעילים בו-זמנית (CCU).
 
----
+5 מיליון בקשות בשנייה (רוחב פס רשת של כ-1 גיגה-בייט בשנייה).
 
-## 2. System Component Breakdown (Container Architecture)
-The application is decoupled into autonomous components, each running as an isolated, lightweight container leveraging **Kernel Sharing** to minimize resource overhead:
+כדי לעמוד בדרישות עומס אלו, המערכת מבוססת על ארכיטקטורת ענן מבוזרת של מיקרו-שירותים (Microservices) הפרוסים בתוך קונטיינרים קלים של Docker ומנוהלים על ידי מנהל תזמור (כמו Kubernetes).
 
-### Load Balancer
-The primary gateway of the system. It intercepts all incoming HTTP/WebSockets traffic from the internet and dynamically distributes it across available authentication and matchmaking servers to prevent single-point overloads.
+2. פירוט רכיבי המערכת וארכיטקטורת האשכול (Cluster)
+נתב עומסים (Load Balancer)
+שער הכניסה הראשי של המערכת. הוא קולט את כל תעבורת ה-HTTP/WebSockets הנכנסת מהאינטרנט ומפיץ אותה בצורה דינמית בין שרתי האימות והשידוכים כדי למנוע עומס על נקודת כשל יחידה.
 
-### Stateless Auth & Matchmaking Services
-Stateless microservices responsible for verifying user credentials, handling user registrations, and pairing players with similar skill levels (Elo rating). 
-> **Scale Advantage:** Being completely stateless allows hundreds of instances to spin up within fractions of a second via **Autoscaling** during traffic spikes.
+שירותי שידוך מבוזרים ללא מצב (Distributed Stateless Matchmaking)
+כדי לטפס למסה האדירה של בקשות שידוך תחת עומס של 10M CCU, רכיב ה-Matchmaker הוא Stateless לחלוטין ומריץ מאות מופעים המשונים בגודלם אוטומטית (Auto-scaling).
 
-### Stateful Game Servers
-Stateful microservices. Once a match is made, players are routed to a specific game server instance tasked with running the dedicated game session tick-loop for the duration of the 30–90 second match. These containers are protected against abrupt scale-down events to ensure active games are never interrupted.
+יתרון לגודל: המופעים אינם מחזיקים רשימות המתנה מקומיות בזיכרון שלהם. במקום זאת, הם עובדים מול Redis Cluster מבוזר ומנצלים מבני נתונים מהירים (כמו Sorted Sets / ZSET) כדי לשלוף ולשדך שחקנים בצורה יעילה.
 
----
+ביזור הנתונים (Sharding): ה-Redis Cluster אינו קופסה מרכזית אחת. הוא משתמש בחלוקה ארכיטקטונית שבה מפתחות התורים (למשל, תור לפי רמות queue:1200-1400) מתפזרים בצורה דינמית בין צמתי בסיס הנתונים השונים באמצעות Hash Slots סטנדרטיים של רדיס.
 
-## 3. Data & Memory Management Layers
+שרתי משחק בעלי מצב (Stateful Game Servers - ממודל בעלות יחידה על חדר)
+כדי להבטיח עקביות מלאה ואימות חוקיות של כל מהלך מבלי להיגרר למנגנוני הסכמה מבוזרים ואיטיים, כל משחק משויך למופע שרת משחק בעל מצב (Stateful) אחד וספציפי (למשל, Game Server A).
 
-To prevent performance bottlenecks and file-locking contentions, we strictly isolate persistent data from real-time transient data:
+מכונה פיזית אחת מארחת קונטיינרים מבודדים, כאשר כל אחד מהם מנהל אלפי משחקים פעילים במקביל בתוך זיכרון ה-RAM המקומי שלו.
 
-| Feature | Persistent Data Layer | Transient Data Layer |
-| :--- | :--- | :--- |
-| **Technology** | PostgreSQL / MySQL | Redis (In-Memory DB) |
-| **Data Stored** | User profiles, secure password hashes, historical Elo ratings | Active game session states, live match move-data, player routing maps |
-| **Storage Medium** | Hard Disk / SSD (Persistent) | RAM Memory (Ultra-fast, volatile) |
+סימטריית השהיית רשת (Latency Symmetry): שכבת השידוכים מקצה למשחק שרת שנמצא גאוגרפית באמצע הדרך בין השחקנים (למשל, שרת באירופה עבור משחק בין שחקן מישראל לשחקן מניו יורק) כדי לאזן את זמני הפינג (Ping).
 
-### Security & SQL Injection Prevention
-Hardened defense against **SQL Injection** is handled natively within the Repository layer using **Parameterized Queries** with placeholders (`?`). User inputs are treated strictly as isolated data variables and are never evaluated as executable code. 
-*   *Note on Error Handling:* Returning generic errors to the client acts merely as a secondary defensive layer to prevent Error-Based SQLi; the primary protection is achieved completely via query parameterization.
-*   *Why not SQLite?* SQLite operates on a single database file that locks the entire file on every write operation. Under high concurrent load, this causes immediate write bottlenecks and timeouts.
+3. שכבות ניהול נתונים וזיכרון
+אנו אוכפים הפרדה קשיחה בין נתוני ריצה זמניים ונדיפים לבין נתונים קבועים והיסטוריים:
 
-### Live Communication via Redis Pub/Sub
-Each match operates on its own dedicated, isolated **Channel** mapped inside a fast Redis **Hash**. When a player executes a move, Redis awakens and updates *only* the specific game server subscribing to that particular channel, preventing system-wide broadcast storms and maintaining microsecond response times.
+מאפיין	שכבת נתונים קבועה (Persistent)	שכבת נתונים זמנית (Transient)
+טכנולוגיה	PostgreSQL / MySQL	Redis Cluster (In-Memory DB)
+נתונים מאוחסנים	פרופילי משתמשים, גיבובי סיסמאות, היסטוריית דירוגי Elo	גיבוי מצב משחק פעיל, היסטוריית מהלכים חיה, מפות ניתוב בעלי החדרים
+מדיום אחסון	דיסק קשיח / SSD (קבוע)	זיכרון RAM (מהיר במיוחד, נדיף)
+אבטחה, אימות שער וכניסה (Verification)
+מניעת הזרקת SQL: הגנה קשיחה מפני התקפות קלט מנוהלת באופן טבעי בשכבת המאגר (Repository) באמצעות שאילתות מפרמטריות (Parameterized Queries) עם מיקומים שמורים (?). קלטי משתמש מטופלים אך ורק כמשתני נתונים ולעולם אינם מוערכים כקוד SQL להרצה. החזרת שגיאות כלליות לקליינט משמשת רק כשכבת עירפול משנית.
 
----
+אימות טוקן ב-WebSocket: כדי למנוע מגורמים זדוניים לנחש כתובות של חדרים ולהתחבר ישירות לשרתי המשחק, שרת המשחק משמש כשומר סף. בזמן לחיצת היด (Handshake) הראשונית של ה-WebSocket, הוא מאמת באופן מפורש טוקן JWT חתום דיגיטלית המכיל הצהרות קשיחות (user_id, room_id). חיבורים עם טוקן לא תקין נזרקים מייד.
 
-## 4. System Sequence Diagram: Game Move Lifecycle
+4. מחזור חיים מלא של משחק וזרימה בזמן אמת
+שלב 1: שידוך והקצאת חדר
+נתב העומסים מנתב את יוסי (ישראל) ודני (ניו יורק) למופע Matchmaker פנוי. שירות השידוכים מתאים ביניהם לפי ה-Elo, מייצר מזהה חדר (room_123), וקובע שהמשחק ירוץ ב-Game Server A.
 
-The following diagram illustrates how the distributed containers (discovered within the internal network via Docker's internal DNS resolution) communicate end-to-end when a player makes a move:
+שלב 2: ניתוב מחדש של החיבור (Handoff)
+ה-Matchmaker מחזיר לשני הרכיבים במחשב של השחקנים תשובת HTTP זמנית המכילה את טוקן ה-JWT המאובטח ואת כתובת ה-URL המדויקת של שרת המשחק: ws://[game-server-a.chess.com/play/123](https://game-server-a.chess.com/play/123). האפליקציות אצל השחקנים מנתקות את קשר ה-HTTP, ופותחות חיבור WebSocket ישיר וקבוע מול שרת A.
 
-```text
-[Player 1: Yossi]                                          [Player 2: Dani]
-      │                                                          │
-      ▼ (Connection Request)                                     ▼ (Connection Request)
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Load Balancer                                    │
-└──────────────────────┬──────────────────────────────────┬───────────────────┘
-                       │ (Smart Load Routing)             │
-                       ▼                                  ▼
-┌────────────────────────────────────────┐      ┌─────────────────────────────┐
-│    Stateless Auth Container 1          │      │    Stateless Auth Container 2 │
-└──────────────────────┬─────────────────┘      └─────────────────┬───────────┘
-                       │ (Secure Parameterized DB Auth)             │
-                       ▼                                  ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Central Matchmaker Container                         │
-│         - Pairs Yossi and Dani; assigns room_123 on Game Server A.          │
-│         - Establishes isolated Redis channel: `game_room_123`.               │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Central In-Memory RAM (Redis)                       │
-│                   [Active Channel: game_room_123]                           │
-└──────────────────────▲──────────────────────────────────▲───────────────────┘
-                       │ (Server A Subscribes)            │ (Server B Subscribes)
-                       │                                  │
-┌──────────────────────┴─────────────────┐      ┌─────────┴───────────────────┐
-│     Stateful Game Server A             │      │     Stateful Game Server B  │
-│    (Connected to Yossi via WS)         │      │   (Connected to Dani via WS)│
-└──────────────────────▲─────────────────┘      └─────────────────┬───────────┘
-                       │                                  │
-                       │ (1. Yossi moves a piece)         │ (3. Server B pushes move)
-                       │ (2. Server A Publishes to Ch.123)│
-                       │                                  ▼
-                [Player 1: Yossi]                          [Player 2: Dani]
+שלב 3: ניהול המשחק והסמכות (Source of Truth)
+שרת משחק A מחזיק כעת את שני חיבורי ה-WebSocket אצלו בזיכרון ה-RAM.
 
+יוסי מבצע תנועה 
+→
+ המהלך נשלח ב-WebSocket ישירות לשרת A.
 
+שרת A הוא הסמכות הבלעדית: הוא בודק את חוקיות המהלך ב-RAM המקומי ומעדכן את המצב הפנימי.
 
-Execution Steps BreakdownConnection & Load Balancing: Yossi and Dani connect to the platform. The Load Balancer evenly routes their traffic to independent, scaling authentication containers.Matchmaking & Routing: The Matchmaker service pairs the players based on Elo, assigns them to an active room identifier (room_123), and stores a highly optimized routing key map within Redis.Channel Subscription: The respective game servers hosting each player subscribe to the isolated game_room_123 event stream in Redis.Live Move Transmission: Yossi moves a chess piece $\rightarrow$ Game Server A intercepts the action and publishes the state payload directly to channel game_room_123 inside Redis $\rightarrow$ Redis transmits the event in sub-milliseconds strictly to Game Server B (which is listening to that specific stream) $\rightarrow$ Game Server B pushes the updated board layout live to Dani's UI via the active WebSocket connection.Session Teardown: Once the match concludes, the definitive match result is transmitted to the external persistent PostgreSQL database, and the transient keys are purged from the Redis RAM space to optimize resource efficiency.
+שרת A דוחף מיידית את המהלך המעודכן לדני דרך ערוץ ה-WebSocket הפתוח שלו. בשלב זה של לולאת המשחק הפעילה, לא נעשה שימוש ב-Redis Pub/Sub.
+
+שלב 4: גיבוי אסינכרוני (Resilience)
+במקביל לדחיפת המהלך ליריב, שרת A מסנכרן את המידע ומבצע כתיבה מהירה לשני מבני נתונים נפרדים ברדיס במקביל:
+
+רשימה ליניארית מסודרת ב-Redis Stream (תחת המפתח game:room_123:stream) השומרת את לוג כל המהלכים לצורך Replay בעתיד.
+
+מבנה Redis Hash (תחת המפתח game:room_123:meta) השומר את המצב האחרון של פרמטרי השעון ונתוני הלוח הקנוניים.
+
+מכיוון שהכתיבה הזו מבוצעת בצורה אסינכרונית, השרת מחליט לדחוף את המהלך מייד לקליינט של דני (Option A המהיר) כדי לשמור על מהירות מיקרו-השניות של לולאת המשחק החיה, תוך לקיחת סיכון מחושב ומזערי של חלון זמן קצרצר בין ה-UI לגיבוי.
+
+שלב 5: סגירת החדר
+ברגע שמוכרז מט או תיקו, שרת A שומר את תוצאת המשחק הסופית לבסיס הנתונים הקבוע PostgreSQL, מגדיר זמן מחיקה קצר (TTL/Expire) על המפתחות הזמניים ברדיס כדי לפנות RAM, וסוגר את חיבורי השחקנים.
+
+5. ארכיטקטורת התאוששות מכשל (Fault Tolerance & Live Failover)
+אם שרת משחק (למשל, Game Server A) חווה כשל, פרוטוקול ההתאוששות מופעל בשני מסלולים נפרדים בהתאם לאופי התקלה:
+
+Plaintext
+ ┌──────────────────────┐        ┌────────────────────────┐        ┌──────────────────────┐
+ │  1. זיהוי הנתק/כשל   │        │ 2. פנייה יזומה ל-API   │        │ 3. הקצאת שרת B       │
+ │  (RST או Heartbeat)  ├───────►│(Session Recovery Service)├───────►│ושחזור המהלכים ב-RAM  │
+ └──────────────────────┘        └────────────────────────┘        └──────────────────────┘
+פרוטוקול ההתאוששות (The Recovery Protocol):
+1. זיהוי הכשל (Detection)
+מסלול א' - קריסת תהליך מסודרת (Process Crash): אם התהליך של שרת A קורס עקב שגיאת זיכרון (OOM), מערכת ההפעלה שולחת פקודת TCP RST (Reset) מיידית. הקליינטים של יוסי ודני קולטים את הנתק הפיזי בתוך מילישניות ומפעילים קוד התאוששות אוטומטי.
+
+מסלול ב' - נפילת שרת מלאה או ניתוק רשת (Node Death / Network Partition): אם כל המכונה הפיזית נופלת, אין מי שישלח פקודת RST. במקרה זה, החיבור הקיים פשוט קופא. הקליינטים מזהים את הכשל דרך מנגנון ה-Heartbeat (סעיף 6) – ברגע שעוברות מספר שניות ללא פעימת לב, הקליינט מכריז על השרת כמת ומאתחל את פרוטוקול ההתאוששות.
+
+2. פנייה לשירות ההתאוששות
+האפליקציה של השחקן שולחת בקשת HTTP POST לשירות ייעודי בשער שנקרא Session Recovery Service. הבקשה מציגה את הקשר החדר המקורי שלהם: { "room_id": "room_123", "last_seen_move": 14 } יחד עם ה-JWT.
+
+3. הבוררות ומניעת "פיצול מוח" (Zombie Prevention)
+שירות ההתאוששות פונה לנתב הסטטוס של רדיס ובודק איפה חדר room_123 רשום. אם רדיס מראה ששרת A הוא הבעלים, אך ה-Registry התשתיתי (כמו Kubernetes Liveness Probes) מאותת ששרת A מת – שירות ההתאוששות בוחר שרת חדש ופנוי: Game Server B.
+
+מנגנון ה-Fencing Token (אבטחת כתיבה אטומית): שירות ההתאוששות משתמש ב-Lua Script אטומי (או מנגנון WATCH/MULTI ב-Redis) כדי לשנות את הערך ל-room_123:owner = Server_B ולהעלות את מספר הגרסה (Epoch/Version). אם שרת A לא באמת מת אלא רק חווה "גיהוק" רשת, בפעם הבאה שהוא ינסה לבצע כתיבה אסינכרונית לרדיס, ה-Lua Script שיריץ יבדוק את ה-Token, יגלה ששרת B כבר קיבל בעלות עם מספר גרסה גבוה יותר, וידחה את הכתיבה של שרת A באופן פעיל. שרת A יבין שהוא הודח, יסגור את הסוקטים הישנים שלו ויפרוש בשקט.
+
+הערת גיבוי: אם הבדיקה מגלה ששרת A בריא לחלוטין והניתוק היה רק אצל המשתמש, המערכת תחזיר את הכתובת של שרת A המקורי כדי למנוע מעברים מיותרים.
+
+4. שחזור המצב ובניית הלוח
+ברגע שיוסי ודני מקבלים את הכתובת החדשה, הם פותחים WebSocket מול שרת B.
+
+שרת B קורא את מזהה החדר, ניגש ל-Redis Stream ושולף את כל היסטוריית המהלכים הליניארית המלאה, ובמקביל שולף את פרמטרי השעון הנותרים מתוך ה-Redis Hash.
+
+בשבריר מילישנייה, שרת B מריץ את רצף המהלכים על לוח שחמט וירטואלי נקי אצלו ב-RAM, מביא אותו למצב המדויק שבו המשחק נעצר, ומחזיר לשחקנים הודעת סינכרון: ROOM_RESUMED.
+
+5. תוצאת חוויית משתמש (UX)
+השחקנים רואים על המסך הודעה זמנית של "מנסה להתחבר מחדש..." למשך 1.5–2 שניות (בקריסה מסודרת) או קצת יותר (בנפילת Node מלאה), והמשחק חוזר לחיים בדיוק מהנקודה שבה נפסק.
+
+6. פשרות ארכיטקטוניות ודילמות הנדסיות (Trade-offs)
+דילמה 1: ניהול זיכרון בעל מצב (Stateful) מול עיבוד ללא מצב (Stateless)
+אפשרות א' (מצב מקומי ב-RAM - הדרך שנבחרה): שרת המשחק מחזיק את חוקי המשחק והמצב הקנוני ב-RAM המקומי של הקונטיינר.
+
+יתרונות: מהירות ביצוע מקסימלית; אפס פניות לרשת או לבסיסי נתונים כדי לאמת חוקיות של מהלך.
+
+חסרונות: דורש מנגנון התאוששות מורכב (כפי שמתואר בסעיף 5) ומונע אפשרות לכבות או לצמצם שרתים (Scale-down) באופן שרירותי בזמן שיש עליהם משחקים פעילים.
+
+אפשרות ב' (עיבוד Stateless מול זיכרון מטמון מבוזר): שרת המשחק לא שומר כלום מקומית; בכל תור הוא מושך את היסטוריית המשחק מרדיס, בודק חוקיות, ודוחף חזרה לרדיס.
+
+ההחרגה המיוחדת של שחמט ("Chess Exception"): בעוד שאפשרות ב' מייצרת תקורה של פניות רשת (Network I/O), שחמט הוא משחק מבוסס תורות שבו בני אדם חושבים שניות ארוכות, ולכן לאג של 1–2 מילישניות לפנייה לרדיס הוא זניח לחלוטין ולא מורגש. בנוסף, אין חובה "להריץ" שעון חי בזיכרון של השרת בכל שנייה. השרת יכול פשוט לשמור את השדות remaining_time ו-last_move_timestamp, ולחשב את הפרש הזמנים (Delta) רק ברגע שמהלך פיזי נוחת בשרת. מבנה זה מנטרל את אחד הטיעונים המרכזיים בעד שרת Stateful והופך את המודל ה-Stateless לאטרקטיבי ותחרותי מאוד עבור ארכיטקטורת שחמט.
+
+דילמה 2: ניהול פעימות לב (Heartbeats) וזיהוי ניתוקים
+כדי להפעיל ספירה לאחור ולהעניק הפסד טכני לשחקנים שנטשו את המשחק, הפלטפורמה חייבת להבדיל בין שחקן שחושב עמוק לבין שחקן שהאינטרנט שלו התנתק (או במצב שבו ה-Node של השרת קרס ללא שליחת RST).
+
+הפתרון: צינור ה-WebSocket מריץ ברקע לולאות קבועות של הודעות קטנות מסוג Ping/Pong (Heartbeats) בכל כמה שניות.
+
+האופטימיזציה לעומס: כדי לנהל 10 מיליון פעימות לב בשנייה מבלי לחנוק את המעבד (CPU Thread Exhaustion), שרתי המשחק משתמשים בלולאות אירועים אסינכרוניות (Asynchronous I/O Event Loops) מתקדמות (כמו epoll / io_uring) בשילוב עם מנגנוני תזמון מבוססי Min-Heaps פנימיים (In-Memory) בתוך זיכרון התהליך. מבנה זה מבטיח שטיימרים של ניתוקים מנוהלים כמשימות מתוזמנות יעילות (Scheduled Tasks) ולא כבדיקות אקטיביות ויקרות, מה שממזער את תקורה של המעבד בקנה מידה עצום.

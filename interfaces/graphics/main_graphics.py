@@ -1,12 +1,9 @@
-import time
-import cv2
 from core.domain.board_factory import create_standard_board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
 from interfaces.graphics.board_renderer import BoardRenderer
 from interfaces.shared.input_controller import InputController
-from interfaces.shared.graphics_constants import ESC_KEY
-
+from interfaces.shared.game_loop_runner import GameLoopRunner
 
 
 def main():
@@ -14,27 +11,15 @@ def main():
     state = RealTime()
     service = GameService(board, state)
     renderer = BoardRenderer()
-
     controller = InputController(service)
-    window_name = "KF Chess"
-    cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, controller.mouse_callback)
 
-    last_tick = time.perf_counter()
-    while True:
-        now = time.perf_counter()
-        delta_ms = int((now - last_tick) * 1000)
-        last_tick = now
-
-        service.process_wait(delta_ms)
-        renderer.draw_board(service)
-        renderer.draw_scores(service)
-        renderer.draw_event_log(service)
-        if service.is_game_over():
-            renderer.draw_game_over_message()
-        cv2.imshow(window_name, renderer.canvas.img)
-        if cv2.waitKey(1) & 0xFF == ESC_KEY:
-            break
+    GameLoopRunner(
+        window_name="KF Chess",
+        renderer=renderer,
+        controller=controller,
+        state=service,
+        on_tick=service.process_wait,
+    ).run()
 
 if __name__ == "__main__":
     main()
