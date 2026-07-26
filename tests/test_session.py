@@ -2,6 +2,7 @@ import asyncio
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from server.connection import PlayerConnection
+from protocol import GameOver, PieceSnapshot
 from server.session import GameSession
 
 
@@ -11,6 +12,11 @@ class FakeWebSocket:
 
     async def send(self, message):
         self.sent.append(message)
+
+
+class FailingWebSocket:
+    async def send(self, message):
+        raise ConnectionError('connection closed')
 
 
 def make_session():
@@ -71,30 +77,35 @@ def test_black_cannot_jump_whites_king():
     assert session.state.jumps == []
 
 
-def test_pull_outbox_returns_events_from_legal_action():
+def test_next_broadcast_returns_event_from_legal_action():
     session, white, _ = make_session()
     session.try_jump(white, 7, 4)
-    messages = session.pull_outbox()
-    assert len(messages) == 1
-    assert messages[0]['event'] == 'jump_started'
+    message = asyncio.run(session.next_broadcast())
+    assert message.event == 'jump_started'
+
+
+def test_end_wakes_up_a_pending_next_broadcast_with_none():
+    session, _, _ = make_session()
+    session.end('finished')
+    assert asyncio.run(session.next_broadcast()) is None
 
 
 def test_snapshot_includes_all_32_starting_pieces():
     session, _, _ = make_session()
     snapshot = session.snapshot()
-    assert len(snapshot['pieces']) == 32
+    assert len(snapshot.pieces) == 32
 
 
 def test_snapshot_omits_empty_cells():
     session, _, _ = make_session()
     snapshot = session.snapshot()
-    assert '4,4' not in snapshot['pieces']
+    assert '4,4' not in snapshot.pieces
 
 
 def test_snapshot_reports_idle_piece_identity_and_state():
     session, _, _ = make_session()
     snapshot = session.snapshot()
-    assert snapshot['pieces']['6,0'] == {'piece': 'wP', 'state': 'idle'}
+    assert snapshot.pieces['6,0'] == PieceSnapshot(piece='wP', state='idle')
 
 
 def test_snapshot_includes_start_end_progress_for_moving_piece():
@@ -103,11 +114,11 @@ def test_snapshot_includes_start_end_progress_for_moving_piece():
 
     snapshot = session.snapshot()
 
-    entry = snapshot['pieces']['6,0']
-    assert entry['state'] == 'move'
-    assert entry['start'] == [6, 0]
-    assert entry['end'] == [4, 0]
-    assert 0 <= entry['progress'] <= 1
+    entry = snapshot.pieces['6,0']
+    assert entry.state == 'move'
+    assert entry.start == [6, 0]
+    assert entry.end == [4, 0]
+    assert 0 <= entry.progress <= 1
 
 
 def test_snapshot_jumping_piece_has_no_start_end_progress():
@@ -116,18 +127,18 @@ def test_snapshot_jumping_piece_has_no_start_end_progress():
 
     snapshot = session.snapshot()
 
-    entry = snapshot['pieces']['7,4']
-    assert entry['state'] == 'jump'
-    assert 'start' not in entry
-    assert 'end' not in entry
-    assert 'progress' not in entry
+    entry = snapshot.pieces['7,4']
+    assert entry.state == 'jump'
+    assert entry.start is None
+    assert entry.end is None
+    assert entry.progress is None
 
 
 def test_snapshot_includes_scores_and_game_over_flag():
     session, _, _ = make_session()
     snapshot = session.snapshot()
-    assert snapshot['scores'] == {WHITE_COLOR: 0, BLACK_COLOR: 0}
-    assert snapshot['game_over'] is False
+    assert snapshot.scores == {WHITE_COLOR: 0, BLACK_COLOR: 0}
+    assert snapshot.game_over is False
 
 
 def test_broadcast_sends_message_to_both_players():
@@ -136,7 +147,18 @@ def test_broadcast_sends_message_to_both_players():
     black = PlayerConnection(black_ws, 'bob', 1200)
     session = GameSession('room1', white, black)
 
-    asyncio.run(session.broadcast({'type': 'state_update', 'event': 'game_over'}))
+    asyncio.run(session.broadcast(GameOver(winner=WHITE_COLOR, time=0)))
 
     assert len(white_ws.sent) == 1
+    assert len(black_ws.sent) == 1
+
+
+def test_broadcast_survives_one_failed_connection():
+    white = PlayerConnection(FailingWebSocket(), 'alice', 1200)
+    black_ws = FakeWebSocket()
+    black = PlayerConnection(black_ws, 'bob', 1200)
+    session = GameSession('room1', white, black)
+
+    asyncio.run(session.broadcast(GameOver(winner=WHITE_COLOR, time=0)))
+
     assert len(black_ws.sent) == 1

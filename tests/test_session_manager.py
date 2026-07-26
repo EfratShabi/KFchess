@@ -1,4 +1,5 @@
 from server.connection import PlayerConnection
+from server.session import SessionStatus
 from server.session_manager import SessionManager
 
 
@@ -56,3 +57,29 @@ def test_remove_makes_the_session_unfindable():
 def test_remove_unknown_room_id_does_not_raise():
     manager = SessionManager()
     manager.remove('no-such-room')
+
+
+def test_has_active_session_true_for_player_in_an_active_session():
+    manager = SessionManager()
+    white, black = make_pair()
+    manager.create_session(white, black)
+
+    assert manager.has_active_session('alice') is True
+    assert manager.has_active_session('bob') is True
+
+
+def test_has_active_session_false_for_unrelated_username():
+    manager = SessionManager()
+    white, black = make_pair()
+    manager.create_session(white, black)
+
+    assert manager.has_active_session('mallory') is False
+
+
+def test_has_active_session_false_once_session_is_no_longer_active():
+    manager = SessionManager()
+    white, black = make_pair()
+    session = manager.create_session(white, black)
+    session.status = SessionStatus.FINISHED
+
+    assert manager.has_active_session('alice') is False

@@ -1,5 +1,9 @@
+import asyncio
+
 from core.domain.position import Position
-from server.protocol import MSG_TYPES, position_to_list
+from protocol import (
+    GameOver, JumpLanded, JumpStarted, MidairCapture, MoveCaptured, MoveLanded, MoveStarted, position_to_list,
+)
 
 
 def _serialize_value(value):
@@ -12,13 +16,21 @@ def serialize(data):
     return {key: _serialize_value(value) for key, value in data.items()}
 
 
+EVENT_CLASSES = {
+    'move_started': MoveStarted,
+    'jump_started': JumpStarted,
+    'move_landed': MoveLanded,
+    'jump_landed': JumpLanded,
+    'move_captured': MoveCaptured,
+    'midair_capture': MidairCapture,
+    'game_over': GameOver,
+}
+
+
 class NetworkBroadcaster:
     def __init__(self):
-        self.outbox = []
+        self.queue = asyncio.Queue()
 
     def on_event(self, event_type, **data):
-        self.outbox.append({'type': MSG_TYPES['STATE_UPDATE'], 'event': event_type, **serialize(data)})
-
-    def drain(self):
-        messages, self.outbox = self.outbox, []
-        return messages
+        message = EVENT_CLASSES[event_type](**serialize(data))
+        self.queue.put_nowait(message)

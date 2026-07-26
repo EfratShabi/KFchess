@@ -1,6 +1,6 @@
-from server import protocol
+import protocol
 from server.connection import PlayerConnection
-from server.protocol import MSG_TYPES, ProtocolError
+from protocol import FIELDS, MSG_TYPES, ErrorMessage, Ok, ProtocolError
 
 
 async def authenticate(websocket, repo):
@@ -10,18 +10,18 @@ async def authenticate(websocket, repo):
         except ProtocolError:
             continue
 
-        username = msg.get('username')
-        password = msg.get('password')
-        if msg['type'] == MSG_TYPES['REGISTER'] and username and password:
+        username = msg.get(FIELDS['USERNAME'])
+        password = msg.get(FIELDS['PASSWORD'])
+        if msg[FIELDS['TYPE']] == MSG_TYPES['REGISTER'] and username and password:
             ok = repo.register(username, password)
-        elif msg['type'] == MSG_TYPES['LOGIN'] and username and password:
+        elif msg[FIELDS['TYPE']] == MSG_TYPES['LOGIN'] and username and password:
             ok = repo.authenticate(username, password)
         else:
             ok = False
 
         if ok:
             conn = PlayerConnection(websocket, username, repo.get_rating(username))
-            await conn.send({'type': MSG_TYPES['OK']})
+            await conn.send(Ok())
             return conn
-        await websocket.send(protocol.encode(MSG_TYPES['ERROR'], message='login failed'))
+        await websocket.send(protocol.encode_message(ErrorMessage(message='login failed')))
     return None

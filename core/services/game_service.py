@@ -43,6 +43,9 @@ class GameService:
     def is_game_over(self):
         return self.state.game_over
 
+    def get_winner(self):
+        return self.state.winner
+
     def get_scores(self):
         return self.state.scores
 

@@ -13,6 +13,7 @@ class RealTime:
     def __init__(self):
         self.current_time = 0
         self.game_over = False
+        self.winner = None
         self.scores = {WHITE_COLOR: 0, BLACK_COLOR: 0}
 
         self.movements = []
@@ -71,7 +72,9 @@ class RealTime:
             self.movements.remove(movement)
         due_jumps = [j for j in self.jumps if j.is_due(self.current_time)]
         for jump in due_jumps:
-            #board.set_piece(jump.cell.row, jump.cell.col, jump.piece)
+            next_state = self.tracker.get_state(jump.cell).spec.next_state_when_finished
+            self._notify("jump_landed", piece=jump.piece, cell=jump.cell,
+                         next_state=next_state, time=self.current_time)
             self.jumps.remove(jump)
         self.tracker.advance(self.current_time)
 
@@ -90,28 +93,37 @@ class RealTime:
 
         self._notify("midair_capture", attacker=jump.piece, captured=movement.piece,
                       position=movement.start, time=self.current_time)
+
+        attacker_next_state = self.tracker.get_state(jump.cell).spec.next_state_when_finished
+        self.tracker.set_state(jump.cell, attacker_next_state, self.current_time)
+        self._notify("jump_landed", piece=jump.piece, cell=jump.cell,
+                     next_state=attacker_next_state, time=self.current_time)
+
         if movement.piece[1] == KING:
             self.game_over = True
+            self.winner = jump.piece[0]
             self._notify("game_over", winner=jump.piece[0], time=self.current_time)
         else:
             self.add_score(jump.piece[0], PIECE_VALUES[movement.piece[1]])
 
 
     def _land_move(self, movement, board):
+        next_state = self.tracker.get_state(movement.start).spec.next_state_when_finished
         target = board.get_piece_str(*movement.end)
         if target:
             self._notify("move_captured", attacker=movement.piece, captured=target,
                           position=movement.end, time=self.current_time)
             if target[1] == KING:
                 self.game_over = True
+                self.winner = movement.piece[0]
                 self._notify("game_over", winner=movement.piece[0], time=self.current_time)
             else:
                 self.add_score(movement.piece[0], PIECE_VALUES[target[1]])
         else:
-            self._notify("move_landed", piece=movement.piece, end=movement.end, time=self.current_time)
+            self._notify("move_landed", piece=movement.piece, end=movement.end,
+                         next_state=next_state, time=self.current_time)
         board.set_piece(*movement.end, movement.piece)
         board.clear_cell(*movement.start)
-        next_state = self.tracker.get_state(movement.start).spec.next_state_when_finished
         self.tracker.move_state(movement.start, movement.end)
         self.tracker.set_state(movement.end, next_state, self.current_time)
 

@@ -1,9 +1,18 @@
+from enum import Enum
+
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from core.domain.board_factory import create_standard_board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
 from server.broadcaster import NetworkBroadcaster
-from server.protocol import MSG_TYPES
+from server.logging_config import get_logger
+from protocol import PieceSnapshot, Snapshot
+
+
+class SessionStatus(Enum):
+    ACTIVE = 'active'
+    FINISHED = 'finished'
+    DISCONNECTED = 'disconnected'
 
 
 class GameSession:
@@ -17,7 +26,7 @@ class GameSession:
 
         self.players = {WHITE_COLOR: white_conn, BLACK_COLOR: black_conn}
         self.viewers = []
-        self.status = 'active'
+        self.status = SessionStatus.ACTIVE
 
         white_conn.room_id = room_id
         black_conn.room_id = room_id
@@ -43,12 +52,19 @@ class GameSession:
             return False
         return self.service.try_jump(row, col)
 
-    def pull_outbox(self):
-        return self.broadcaster.drain()
+    async def next_broadcast(self):
+        return await self.broadcaster.queue.get()
+
+    def end(self, status):
+        self.status = status
+        self.broadcaster.queue.put_nowait(None)
 
     async def broadcast(self, message):
         for conn in self.connections():
-            await conn.send(message)
+            try:
+                await conn.send(message)
+            except Exception:
+                get_logger().warning(f'failed to send to {conn.username} in room {self.room_id}')
 
     def snapshot(self):
         pieces = {}
@@ -57,19 +73,17 @@ class GameSession:
                 if self.board.is_empty(row, col):
                     continue
                 state_name, _ = self.service.get_piece_state(row, col)
-                entry = {'piece': self.board.get_piece_str(row, col), 'state': state_name}
+                piece_snapshot = PieceSnapshot(piece=self.board.get_piece_str(row, col), state=state_name)
                 movement = self.service.get_piece_movement(row, col)
                 if movement is not None:
                     start, end, progress = movement
-                    entry['start'] = list(start)
-                    entry['end'] = list(end)
-                    entry['progress'] = progress
-                pieces[f'{row},{col}'] = entry
+                    piece_snapshot.start = list(start)
+                    piece_snapshot.end = list(end)
+                    piece_snapshot.progress = progress
+                pieces[f'{row},{col}'] = piece_snapshot
 
-        return {
-            'type': MSG_TYPES['STATE_UPDATE'],
-            'event': 'snapshot',
-            'pieces': pieces,
-            'scores': self.service.get_scores(),
-            'game_over': self.service.is_game_over(),
-        }
+        return Snapshot(
+            pieces=pieces,
+            scores=self.service.get_scores(),
+            game_over=self.service.is_game_over(),
+        )

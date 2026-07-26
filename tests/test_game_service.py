@@ -166,3 +166,29 @@ def test_get_board_string_single_row():
 def test_get_board_string_two_rows():
     svc, ctrl = make_service("wR . .", ". bK .")
     assert svc.get_board_string() == "wR . .\n. bK ."
+
+
+# ──────────────────────────────
+# get_winner
+# ──────────────────────────────
+
+def test_get_winner_is_none_before_game_over():
+    svc, ctrl = make_service("wR . bK")
+    assert svc.get_winner() is None
+
+
+def test_get_winner_returns_capturing_color_when_move_captures_king():
+    svc, ctrl = make_service("wR . bK")
+    assert svc.try_move((0, 0), (0, 2)) is True
+    svc.process_wait(3000)
+    assert svc.is_game_over() is True
+    assert svc.get_winner() == 'w'
+
+
+def test_get_winner_returns_capturing_color_on_midair_capture():
+    svc, ctrl = make_service("bK wR .")
+    assert svc.try_move((0, 0), (0, 1)) is True
+    assert svc.try_jump(0, 1) is True
+    svc.process_wait(1000)
+    assert svc.is_game_over() is True
+    assert svc.get_winner() == 'w'

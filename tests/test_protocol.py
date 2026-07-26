@@ -3,7 +3,7 @@ import json
 import pytest
 
 from core.domain.position import Position
-from server.protocol import encode, decode, position_to_list, ProtocolError, MSG_TYPES
+from protocol import encode, decode, position_to_list, list_to_position, ProtocolError, MSG_TYPES
 
 
 def test_encode_includes_type_and_payload():
@@ -34,3 +34,12 @@ def test_decode_rejects_non_object_json():
 
 def test_position_to_list():
     assert position_to_list(Position(3, 5)) == [3, 5]
+
+
+def test_list_to_position():
+    assert list_to_position([3, 5]) == Position(3, 5)
+
+
+def test_position_list_round_trip():
+    pos = Position(2, 7)
+    assert list_to_position(position_to_list(pos)) == pos

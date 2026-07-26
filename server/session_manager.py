@@ -1,6 +1,6 @@
 import uuid
 
-from server.session import GameSession
+from server.session import GameSession, SessionStatus
 
 
 class SessionManager:
@@ -18,3 +18,10 @@ class SessionManager:
 
     def remove(self, room_id):
         self._sessions.pop(room_id, None)
+
+    def has_active_session(self, username):
+        return any(
+            session.status == SessionStatus.ACTIVE
+            and username in {conn.username for conn in session.players.values()}
+            for session in self._sessions.values()
+        )

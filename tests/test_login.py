@@ -1,9 +1,9 @@
 import asyncio
 
-from server import protocol
+import protocol
 from server.db import init_db, AccountRepository
 from server.login import authenticate
-from server.protocol import MSG_TYPES
+from protocol import MSG_TYPES
 
 
 class FakeWebSocket:

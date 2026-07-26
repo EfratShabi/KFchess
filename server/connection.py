@@ -1,4 +1,4 @@
-from server import protocol
+import protocol
 
 
 class PlayerConnection:
@@ -9,5 +9,4 @@ class PlayerConnection:
         self.room_id = None
 
     async def send(self, message):
-        payload = {k: v for k, v in message.items() if k != 'type'}
-        await self.websocket.send(protocol.encode(message['type'], **payload))
+        await self.websocket.send(protocol.encode_message(message))
