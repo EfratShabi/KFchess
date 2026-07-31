@@ -1,7 +1,7 @@
 import asyncio
 
 import protocol
-from server.db import init_db, AccountRepository
+from server.db import AccountRepository
 from server.login import authenticate
 from protocol import MSG_TYPES
 
@@ -24,12 +24,12 @@ class FakeWebSocket:
         self.sent.append(message)
 
 
-def make_repo():
-    return AccountRepository(init_db(':memory:'))
+def make_repo(db_conn):
+    return AccountRepository(db_conn)
 
 
-def test_register_creates_account_and_returns_connection():
-    repo = make_repo()
+def test_register_creates_account_and_returns_connection(db_conn):
+    repo = make_repo(db_conn)
     ws = FakeWebSocket([protocol.encode(MSG_TYPES['REGISTER'], username='efrat', password='secret')])
 
     conn = asyncio.run(authenticate(ws, repo))
@@ -39,8 +39,8 @@ def test_register_creates_account_and_returns_connection():
     assert protocol.decode(ws.sent[-1])['type'] == MSG_TYPES['OK']
 
 
-def test_login_with_correct_password_succeeds():
-    repo = make_repo()
+def test_login_with_correct_password_succeeds(db_conn):
+    repo = make_repo(db_conn)
     repo.register('efrat', 'secret')
     ws = FakeWebSocket([protocol.encode(MSG_TYPES['LOGIN'], username='efrat', password='secret')])
 
@@ -49,8 +49,8 @@ def test_login_with_correct_password_succeeds():
     assert conn.username == 'efrat'
 
 
-def test_login_with_wrong_password_fails_and_returns_none():
-    repo = make_repo()
+def test_login_with_wrong_password_fails_and_returns_none(db_conn):
+    repo = make_repo(db_conn)
     repo.register('efrat', 'secret')
     ws = FakeWebSocket([protocol.encode(MSG_TYPES['LOGIN'], username='efrat', password='wrong')])
 
@@ -60,8 +60,8 @@ def test_login_with_wrong_password_fails_and_returns_none():
     assert protocol.decode(ws.sent[-1])['type'] == MSG_TYPES['ERROR']
 
 
-def test_second_attempt_after_failed_login_can_succeed():
-    repo = make_repo()
+def test_second_attempt_after_failed_login_can_succeed(db_conn):
+    repo = make_repo(db_conn)
     repo.register('efrat', 'secret')
     ws = FakeWebSocket([
         protocol.encode(MSG_TYPES['LOGIN'], username='efrat', password='wrong'),
@@ -73,8 +73,8 @@ def test_second_attempt_after_failed_login_can_succeed():
     assert conn.username == 'efrat'
 
 
-def test_malformed_message_is_skipped_not_fatal():
-    repo = make_repo()
+def test_malformed_message_is_skipped_not_fatal(db_conn):
+    repo = make_repo(db_conn)
     repo.register('efrat', 'secret')
     ws = FakeWebSocket([
         'not json',
@@ -86,8 +86,8 @@ def test_malformed_message_is_skipped_not_fatal():
     assert conn.username == 'efrat'
 
 
-def test_no_messages_returns_none():
-    repo = make_repo()
+def test_no_messages_returns_none(db_conn):
+    repo = make_repo(db_conn)
     ws = FakeWebSocket([])
 
     conn = asyncio.run(authenticate(ws, repo))

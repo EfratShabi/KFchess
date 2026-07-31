@@ -1,12 +1,11 @@
 import pytest
 
-from server.db import init_db, AccountRepository
+from server.db import AccountRepository
 
 
 @pytest.fixture
-def repo():
-    conn = init_db(':memory:')
-    return AccountRepository(conn)
+def repo(db_conn):
+    return AccountRepository(db_conn)
 
 
 def test_register_new_user_succeeds(repo):

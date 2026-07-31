@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kfchess
+      POSTGRES_USER: kfchess
+      POSTGRES_PASSWORD: kfchess
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kfchess"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  api_gateway:
+    build: .
+    command: ["python", "-m", "server.api_gateway"]
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: kfchess
+      DB_USER: kfchess
+      DB_PASSWORD: kfchess
+      TOKEN_SECRET: dev-secret-change-me
+    depends_on:
+      db:
+        condition: service_healthy
+
+  server:
+    build: .
+    ports:
+      - "8765:8765"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: kfchess
+      DB_USER: kfchess
+      DB_PASSWORD: kfchess
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  db-data:
