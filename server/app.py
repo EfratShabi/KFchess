@@ -1,6 +1,7 @@
 import asyncio
 import os
 import time
+import uuid
 
 import websockets
 from redis.asyncio import Redis
@@ -8,13 +9,17 @@ from redis.asyncio import Redis
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 import protocol
 from server.db import init_db, AccountRepository
-from server.login import authenticate
+from server.ws_auth import authenticate_with_token
 from server.logging_config import setup_logging, get_logger
 from server.game_result import compute_rating_changes
 from server.matchmaking import MatchmakingQueue
 from server.result_writer import GameResult, ResultWriter
+from server.room_state import RoomState
+from server.reconnect import try_reconnect
+from server.recovery import recover_room
+from server.tokens import create_ticket
 from protocol import (
-    FIELDS, MSG_TYPES, ErrorMessage, MatchFound, NoOpponent, OpponentDisconnected, list_to_position,
+    FIELDS, MSG_TYPES, ErrorMessage, MatchFound, NoOpponent, OpponentReconnecting, list_to_position,
 )
 from server.session import SessionStatus
 from server.session_manager import SessionManager
@@ -25,17 +30,20 @@ HOST = '0.0.0.0'
 PORT = 8765
 
 
-async def join_queue(conn, matchmaking, sessions, mailboxes, waiting_connections, result_writer):
+async def join_queue(conn, matchmaking, sessions, mailboxes, waiting_connections, result_writer, room_state, shard_id):
     matched_username = await matchmaking.try_match(conn.username, conn.rating)
     if matched_username is not None:
         opponent_conn = waiting_connections.pop(matched_username)
         session = sessions.create_session(opponent_conn, conn)
+        epoch = await room_state.claim_room(session.room_id, shard_id)
+        await room_state.save_players(session.room_id, opponent_conn.username, conn.username)
+        ticket = create_ticket(session.room_id, epoch)
         get_logger().info(f'match created: room={session.room_id}')
         await opponent_conn.send(
-            MatchFound(room_id=session.room_id, color=WHITE_COLOR, opponent=conn.username))
+            MatchFound(room_id=session.room_id, color=WHITE_COLOR, opponent=conn.username, ticket=ticket))
         await conn.send(
-            MatchFound(room_id=session.room_id, color=BLACK_COLOR, opponent=opponent_conn.username))
-        asyncio.create_task(run_session_tick_loop(session, sessions, result_writer))
+            MatchFound(room_id=session.room_id, color=BLACK_COLOR, opponent=opponent_conn.username, ticket=ticket))
+        asyncio.create_task(run_session_tick_loop(session, sessions, result_writer, room_state))
         asyncio.create_task(broadcast_loop(session))
         waiting_mailbox = mailboxes.pop(matched_username, None)
         if waiting_mailbox is not None:
@@ -69,8 +77,8 @@ async def handle_session_messages(session, conn):
                     await conn.send(ErrorMessage(message='illegal jump'))
     finally:
         if session.status == SessionStatus.ACTIVE:
-            session.end(SessionStatus.DISCONNECTED)
-            await session.broadcast(OpponentDisconnected())
+            session.mark_disconnected(conn)
+            await session.broadcast(OpponentReconnecting())
 
 
 async def broadcast_loop(session):
@@ -81,14 +89,27 @@ async def broadcast_loop(session):
         await session.broadcast(msg)
 
 
-async def run_session_tick_loop(session, sessions, result_writer):
+async def run_session_tick_loop(session, sessions, result_writer, room_state):
     tick = 0
     while session.status == SessionStatus.ACTIVE and not session.service.is_game_over():
         await asyncio.sleep(TICK_MS / 1000)
+        if session.is_paused():
+            expired = session.expired_disconnects()
+            if expired:
+                if len(expired) == len(session.players):
+                    session.end(SessionStatus.DISCONNECTED)
+                else:
+                    disconnected_color = expired[0]
+                    winning_color = BLACK_COLOR if disconnected_color == WHITE_COLOR else WHITE_COLOR
+                    session.service.force_game_over(winning_color)
+            continue
         session.service.process_wait(TICK_MS)
         tick += 1
         if tick % SNAPSHOT_EVERY_N_TICKS == 0:
-            await session.broadcast(session.snapshot())
+            snapshot = session.snapshot()
+            await session.broadcast(snapshot)
+            await room_state.save_snapshot(session.room_id, snapshot)
+            await room_state.renew_lease(session.room_id)
     if session.status == SessionStatus.ACTIVE:
         session.end(SessionStatus.FINISHED)
         white_conn = session.players[WHITE_COLOR]
@@ -103,6 +124,7 @@ async def run_session_tick_loop(session, sessions, result_writer):
             black_rating_after=new_black,
         ))
         await session.broadcast(session.snapshot())
+    await room_state.clear_room(session.room_id)
     sessions.remove(session.room_id)
 
 
@@ -126,22 +148,37 @@ async def main():
     matchmaking = MatchmakingQueue(redis_client)
     sessions = SessionManager()
     result_writer = ResultWriter(repo)
+    room_state = RoomState(redis_client)
+    shard_id = uuid.uuid4().hex[:8]
     mailboxes = {}
     waiting_connections = {}
 
     async def handle_player_lifecycle(websocket):
         logger.info('client connected')
-        player = await authenticate(websocket, repo)
+        player = await authenticate_with_token(websocket, repo)
         if player is None:
             return
         if sessions.has_active_session(player.username):
-            await player.send(ErrorMessage(message='you already have an active game'))
+            session = await try_reconnect(websocket, player, sessions)
+            if session is None:
+                return
+            await handle_session_messages(session, player)
             return
-        session = await join_queue(player, matchmaking, sessions, mailboxes, waiting_connections, result_writer)
+        session = await join_queue(
+            player, matchmaking, sessions, mailboxes, waiting_connections, result_writer, room_state, shard_id)
         if session is None:
             await player.send(NoOpponent())
             return
         await handle_session_messages(session, player)
+
+    for orphaned_room_id in await room_state.find_orphaned_rooms():
+        recovered_session = await recover_room(orphaned_room_id, room_state, repo, sessions, shard_id)
+        if recovered_session is not None:
+            logger.info(f'recovered room after a crash: room={orphaned_room_id}')
+            asyncio.create_task(run_session_tick_loop(recovered_session, sessions, result_writer, room_state))
+            asyncio.create_task(broadcast_loop(recovered_session))
+        else:
+            logger.info(f'could not recover orphaned room (missing data), cleared: room={orphaned_room_id}')
 
     asyncio.create_task(expiry_loop(matchmaking))
     asyncio.create_task(result_writer.run())

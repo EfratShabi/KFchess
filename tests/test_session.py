@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from server.connection import PlayerConnection
@@ -24,6 +25,18 @@ def make_session():
     black = PlayerConnection(None, 'bob', 1200)
     session = GameSession('room1', white, black)
     return session, white, black
+
+
+def test_custom_board_is_used_when_provided():
+    from core.domain.board import Board
+
+    white = PlayerConnection(None, 'alice', 1200)
+    black = PlayerConnection(None, 'bob', 1200)
+    custom_board = Board([['.'] * 8 for _ in range(8)])
+
+    session = GameSession('room1', white, black, board=custom_board)
+
+    assert session.board is custom_board
 
 
 def test_players_get_room_id_assigned():
@@ -162,3 +175,49 @@ def test_broadcast_survives_one_failed_connection():
     asyncio.run(session.broadcast(GameOver(winner=WHITE_COLOR, time=0)))
 
     assert len(black_ws.sent) == 1
+
+
+def test_color_of_username_identifies_each_player():
+    session, _, _ = make_session()
+    assert session.color_of_username('alice') == WHITE_COLOR
+    assert session.color_of_username('bob') == BLACK_COLOR
+
+
+def test_color_of_username_unknown_is_none():
+    session, _, _ = make_session()
+    assert session.color_of_username('mallory') is None
+
+
+def test_mark_disconnected_pauses_the_session():
+    session, white, _ = make_session()
+    assert session.is_paused() is False
+
+    session.mark_disconnected(white)
+
+    assert session.is_paused() is True
+
+
+def test_mark_reconnected_clears_pause_and_swaps_connection():
+    session, white, _ = make_session()
+    session.mark_disconnected(white)
+    new_white = PlayerConnection(None, 'alice', 1200)
+
+    session.mark_reconnected(WHITE_COLOR, new_white)
+
+    assert session.is_paused() is False
+    assert session.players[WHITE_COLOR] is new_white
+    assert new_white.room_id == 'room1'
+
+
+def test_expired_disconnects_empty_before_deadline():
+    session, white, _ = make_session()
+    session.mark_disconnected(white)
+    assert session.expired_disconnects() == []
+
+
+def test_expired_disconnects_reports_color_once_deadline_passes():
+    session, white, _ = make_session()
+    session.mark_disconnected(white)
+    session.disconnect_deadlines[WHITE_COLOR] = time.monotonic() - 1
+
+    assert session.expired_disconnects() == [WHITE_COLOR]

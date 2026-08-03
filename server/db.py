@@ -1,4 +1,6 @@
 import os
+from dataclasses import dataclass
+from datetime import datetime
 
 import psycopg2
 import psycopg2.errors
@@ -6,6 +8,17 @@ import psycopg2.errors
 from server.auth import hash_password, verify_password
 
 DEFAULT_RATING = 1200
+
+
+@dataclass
+class GameRecord:
+    room_id: str
+    white_username: str
+    black_username: str
+    winner: str
+    white_rating_after: int
+    black_rating_after: int
+    finished_at: datetime
 
 
 def init_db():
@@ -49,6 +62,7 @@ class AccountRepository:
         with self.conn.cursor() as cur:
             cur.execute('SELECT 1 FROM users WHERE username = %s', (username,))
             if cur.fetchone():
+                self.conn.rollback()
                 return False
             password_hash, salt = hash_password(password)
             try:
@@ -66,6 +80,7 @@ class AccountRepository:
         with self.conn.cursor() as cur:
             cur.execute('SELECT password_hash, salt FROM users WHERE username = %s', (username,))
             row = cur.fetchone()
+        self.conn.commit()
         if row is None:
             return False
         password_hash, salt = row
@@ -75,6 +90,7 @@ class AccountRepository:
         with self.conn.cursor() as cur:
             cur.execute('SELECT rating FROM users WHERE username = %s', (username,))
             row = cur.fetchone()
+        self.conn.commit()
         return row[0] if row else None
 
     def update_rating(self, username, new_rating):
@@ -93,3 +109,18 @@ class AccountRepository:
                  white_rating_after, black_rating_after),
             )
         self.conn.commit()
+
+    def get_history(self, username, limit=20):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''SELECT room_id, white_username, black_username, winner,
+                          white_rating_after, black_rating_after, finished_at
+                   FROM results
+                   WHERE white_username = %s OR black_username = %s
+                   ORDER BY finished_at DESC
+                   LIMIT %s''',
+                (username, username, limit),
+            )
+            rows = cur.fetchall()
+        self.conn.commit()
+        return [GameRecord(*row) for row in rows]

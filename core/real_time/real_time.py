@@ -49,6 +49,11 @@ class RealTime:
     def add_score(self, color, points):
         self.scores[color] += points
 
+    def force_game_over(self, winner):
+        self.game_over = True
+        self.winner = winner
+        self._notify("game_over", winner=winner, time=self.current_time)
+
     def register_move(self, start, end, piece, distance):
         duration = distance * MS_PER_CELL
         start_time = self.current_time

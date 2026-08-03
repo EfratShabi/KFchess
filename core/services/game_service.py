@@ -46,6 +46,9 @@ class GameService:
     def get_winner(self):
         return self.state.winner
 
+    def force_game_over(self, winner):
+        self.state.force_game_over(winner)
+
     def get_scores(self):
         return self.state.scores
 

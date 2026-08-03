@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
@@ -8,6 +9,8 @@ from server.broadcaster import NetworkBroadcaster
 from server.logging_config import get_logger
 from protocol import PieceSnapshot, Snapshot
 
+RECONNECT_GRACE_SECONDS = 20
+
 
 class SessionStatus(Enum):
     ACTIVE = 'active'
@@ -16,9 +19,9 @@ class SessionStatus(Enum):
 
 
 class GameSession:
-    def __init__(self, room_id, white_conn, black_conn):
+    def __init__(self, room_id, white_conn, black_conn, board=None):
         self.room_id = room_id
-        self.board = create_standard_board()
+        self.board = board if board is not None else create_standard_board()
         self.state = RealTime()
         self.service = GameService(self.board, self.state)
         self.broadcaster = NetworkBroadcaster()
@@ -27,6 +30,7 @@ class GameSession:
         self.players = {WHITE_COLOR: white_conn, BLACK_COLOR: black_conn}
         self.viewers = []
         self.status = SessionStatus.ACTIVE
+        self.disconnect_deadlines = {}
 
         white_conn.room_id = room_id
         black_conn.room_id = room_id
@@ -39,6 +43,28 @@ class GameSession:
             if player_conn is conn:
                 return color
         return None
+
+    def color_of_username(self, username):
+        for color, conn in self.players.items():
+            if conn.username == username:
+                return color
+        return None
+
+    def mark_disconnected(self, conn):
+        color = self.color_of(conn)
+        self.disconnect_deadlines[color] = time.monotonic() + RECONNECT_GRACE_SECONDS
+
+    def mark_reconnected(self, color, new_conn):
+        self.players[color] = new_conn
+        new_conn.room_id = self.room_id
+        self.disconnect_deadlines.pop(color, None)
+
+    def is_paused(self):
+        return bool(self.disconnect_deadlines)
+
+    def expired_disconnects(self):
+        now = time.monotonic()
+        return [color for color, deadline in self.disconnect_deadlines.items() if now >= deadline]
 
     def try_move(self, conn, start, end):
         color = self.color_of(conn)

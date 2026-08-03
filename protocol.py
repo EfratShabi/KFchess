@@ -7,9 +7,11 @@ from core.domain.position import Position
 MSG_TYPES = {
     'REGISTER': 'register',
     'LOGIN': 'login',
+    'AUTHENTICATE': 'authenticate',
     'OK': 'ok',
     'ERROR': 'error',
     'JOIN_QUEUE': 'join_queue',
+    'RECONNECT': 'reconnect',
     'MATCH_FOUND': 'match_found',
     'NO_OPPONENT': 'no_opponent',
     'OPPONENT_DISCONNECTED': 'opponent_disconnected',
@@ -23,6 +25,8 @@ FIELDS = {
     'TYPE': 'type',
     'USERNAME': 'username',
     'PASSWORD': 'password',
+    'TOKEN': 'token',
+    'TICKET': 'ticket',
     'ROOM_ID': 'room_id',
     'COLOR': 'color',
     'OPPONENT': 'opponent',
@@ -62,6 +66,7 @@ class MatchFound:
     room_id: str
     color: str
     opponent: str
+    ticket: str
     type: str = MSG_TYPES['MATCH_FOUND']
 
 
@@ -73,6 +78,12 @@ class NoOpponent:
 @dataclass
 class OpponentDisconnected:
     type: str = MSG_TYPES['OPPONENT_DISCONNECTED']
+
+
+@dataclass
+class OpponentReconnecting:
+    type: str = MSG_TYPES['STATE_UPDATE']
+    event: str = 'opponent_reconnecting'
 
 
 @dataclass
@@ -184,6 +195,7 @@ MESSAGE_CLASSES = {
     MSG_TYPES['MATCH_FOUND']: MatchFound,
     MSG_TYPES['NO_OPPONENT']: NoOpponent,
     MSG_TYPES['OPPONENT_DISCONNECTED']: OpponentDisconnected,
+    'opponent_reconnecting': OpponentReconnecting,
     'snapshot': Snapshot,
     'move_started': MoveStarted,
     'jump_started': JumpStarted,

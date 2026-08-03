@@ -16,6 +16,9 @@ class SessionManager:
     def get(self, room_id):
         return self._sessions.get(room_id)
 
+    def restore(self, session):
+        self._sessions[session.room_id] = session
+
     def remove(self, room_id):
         self._sessions.pop(room_id, None)
 

@@ -1,5 +1,5 @@
 from server.connection import PlayerConnection
-from server.session import SessionStatus
+from server.session import GameSession, SessionStatus
 from server.session_manager import SessionManager
 
 
@@ -83,3 +83,14 @@ def test_has_active_session_false_once_session_is_no_longer_active():
     session.status = SessionStatus.FINISHED
 
     assert manager.has_active_session('alice') is False
+
+
+def test_restore_registers_a_session_under_its_own_room_id():
+    manager = SessionManager()
+    white, black = make_pair()
+    session = GameSession('recovered-room', white, black)
+
+    manager.restore(session)
+
+    assert manager.get('recovered-room') is session
+    assert manager.has_active_session('alice') is True

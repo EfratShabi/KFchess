@@ -23,5 +23,9 @@ def test_malformed_token_is_rejected():
     assert verify_token('not-a-valid-token') is None
 
 
+def test_missing_token_is_rejected():
+    assert verify_token(None) is None
+
+
 def test_token_for_different_username_has_different_signature():
     assert create_token('alice') != create_token('bob')

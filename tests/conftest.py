@@ -37,9 +37,10 @@ def make_service():
 def db_conn():
     conn = init_db()
     with conn.cursor() as cur:
-        cur.execute('TRUNCATE TABLE users')
+        cur.execute('TRUNCATE TABLE users, results')
     conn.commit()
-    return conn
+    yield conn
+    conn.close()
 
 
 @pytest.fixture

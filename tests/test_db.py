@@ -1,5 +1,6 @@
 import pytest
 
+from core.config.constants import WHITE_COLOR
 from server.db import AccountRepository
 
 
@@ -44,3 +45,28 @@ def test_update_rating_changes_stored_value(repo):
     repo.register('efrat', 'secret')
     repo.update_rating('efrat', 1310)
     assert repo.get_rating('efrat') == 1310
+
+
+def test_get_history_returns_most_recent_game_first(repo):
+    repo.register('alice', 'secret')
+    repo.save_result('room1', 'alice', 'bob', WHITE_COLOR, 1216, 1184)
+    repo.save_result('room2', 'alice', 'carol', WHITE_COLOR, 1230, 1170)
+
+    history = repo.get_history('alice')
+
+    assert [record.room_id for record in history] == ['room2', 'room1']
+
+
+def test_get_history_excludes_other_users_games(repo):
+    repo.register('alice', 'secret')
+    repo.save_result('room1', 'alice', 'bob', WHITE_COLOR, 1216, 1184)
+
+    assert repo.get_history('carol') == []
+
+
+def test_get_history_respects_limit(repo):
+    repo.register('alice', 'secret')
+    for i in range(3):
+        repo.save_result(f'room{i}', 'alice', 'bob', WHITE_COLOR, 1200, 1200)
+
+    assert len(repo.get_history('alice', limit=2)) == 2
