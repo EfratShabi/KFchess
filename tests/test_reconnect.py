@@ -3,10 +3,10 @@ import asyncio
 import protocol
 from core.config.constants import WHITE_COLOR
 from protocol import MSG_TYPES
-from server.connection import PlayerConnection
-from server.reconnect import try_reconnect
-from server.session_manager import SessionManager
-from server.tokens import create_ticket
+from server.session.connection import PlayerConnection
+from server.session.reconnect import try_reconnect
+from server.session.session_manager import SessionManager
+from server.auth.tokens import create_ticket
 
 
 class FakeWebSocket:
@@ -84,18 +84,17 @@ def test_reconnect_username_not_in_room_is_rejected():
     assert result is None
 
 
-def test_non_reconnect_message_is_ignored():
+def test_non_reconnect_message_gets_a_clear_error_and_ends():
     sessions, session = make_active_session()
-    ticket = create_ticket(session.room_id, 1)
     ws = FakeWebSocket([
-        protocol.encode(MSG_TYPES['MOVE'], start=[0, 0], end=[0, 1]),
-        protocol.encode(MSG_TYPES['RECONNECT'], ticket=ticket),
+        protocol.encode(MSG_TYPES['SPECTATE'], room_id=session.room_id),
     ])
     new_conn = PlayerConnection(ws, 'alice', 1200)
 
     result = asyncio.run(try_reconnect(ws, new_conn, sessions))
 
-    assert result is session
+    assert result is None
+    assert protocol.decode(ws.sent[-1])['message'] == 'you already have an active game; reconnect to it first'
 
 
 def test_no_messages_returns_none():

@@ -2,9 +2,9 @@ import asyncio
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from protocol import PieceSnapshot, Snapshot
-from server.recovery import recover_room
-from server.room_state import ROOM_OWNER_KEY, RoomState
-from server.session_manager import SessionManager
+from server.session.recovery import recover_room
+from server.session.room_state import ROOM_OWNER_KEY, RoomState
+from server.session.session_manager import SessionManager
 
 
 class FakeRepo:

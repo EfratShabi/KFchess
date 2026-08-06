@@ -1,5 +1,5 @@
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
-from server.rating import update_ratings
+from server.postgame.rating import update_ratings
 
 
 def compute_rating_changes(session):

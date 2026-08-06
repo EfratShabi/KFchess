@@ -5,7 +5,7 @@ from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from core.domain.board_factory import create_standard_board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
-from server.broadcaster import NetworkBroadcaster
+from server.session.broadcaster import NetworkBroadcaster
 from server.logging_config import get_logger
 from protocol import PieceSnapshot, Snapshot
 

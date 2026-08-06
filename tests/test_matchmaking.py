@@ -1,6 +1,6 @@
 import asyncio
 
-from server.matchmaking import MatchmakingQueue
+from server.session.matchmaking import MatchmakingQueue
 
 
 def test_try_match_on_empty_queue_returns_none(redis_client):

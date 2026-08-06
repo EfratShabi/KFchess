@@ -1,7 +1,7 @@
 import pytest
 
 from core.config.constants import WHITE_COLOR
-from server.db import AccountRepository
+from server.persistence.db import AccountRepository
 
 
 @pytest.fixture

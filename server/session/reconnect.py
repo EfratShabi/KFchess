@@ -1,7 +1,7 @@
 import protocol
 from protocol import FIELDS, MSG_TYPES, ErrorMessage, Ok, ProtocolError
-from server.session import SessionStatus
-from server.tokens import verify_ticket
+from server.session.session import SessionStatus
+from server.auth.tokens import verify_ticket
 
 
 async def try_reconnect(websocket, player, sessions):
@@ -11,7 +11,9 @@ async def try_reconnect(websocket, player, sessions):
         except ProtocolError:
             continue
         if msg[FIELDS['TYPE']] != MSG_TYPES['RECONNECT']:
-            continue
+            await websocket.send(protocol.encode_message(
+                ErrorMessage(message='you already have an active game; reconnect to it first')))
+            return None
 
         result = verify_ticket(msg.get(FIELDS['TICKET']))
         if result is None:

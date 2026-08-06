@@ -8,43 +8,52 @@ from redis.asyncio import Redis
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 import protocol
-from server.db import init_db, AccountRepository
-from server.ws_auth import authenticate_with_token
+from server.persistence.db import init_db, AccountRepository
+from server.auth.ws_auth import authenticate_with_token
 from server.logging_config import setup_logging, get_logger
-from server.game_result import compute_rating_changes
-from server.matchmaking import MatchmakingQueue
-from server.result_writer import GameResult, ResultWriter
-from server.room_state import RoomState
-from server.reconnect import try_reconnect
-from server.recovery import recover_room
-from server.tokens import create_ticket
+from server.postgame.game_result import compute_rating_changes
+from server.session.matchmaking import MatchmakingQueue
+from server.persistence.result_writer import GameResult, ResultWriter
+from server.session.room_state import RoomState
+from server.session.allocator import GameAllocator, ShardInfo
+from server.session.reconnect import try_reconnect
+from server.session.recovery import recover_room
+from server.auth.tokens import create_ticket
 from protocol import (
-    FIELDS, MSG_TYPES, ErrorMessage, MatchFound, NoOpponent, OpponentReconnecting, list_to_position,
+    FIELDS, MSG_TYPES, ErrorMessage, MatchFound, NoOpponent, OpponentReconnecting, RoomCreated, list_to_position,
 )
-from server.session import SessionStatus
-from server.session_manager import SessionManager
+from server.session.session import SessionStatus
+from server.session.session_manager import SessionManager
 
 TICK_MS = 100
 SNAPSHOT_EVERY_N_TICKS = 10
+CLOSE_ROOM_TIMEOUT_S = 300
 HOST = '0.0.0.0'
 PORT = 8765
 
 
-async def join_queue(conn, matchmaking, sessions, mailboxes, waiting_connections, result_writer, room_state, shard_id):
+async def _start_session(white_conn, black_conn, sessions, result_writer, room_state, allocator, shard_id, room_id=None):
+    session = sessions.create_session(white_conn, black_conn, room_id=room_id)
+    candidates = [ShardInfo(shard_id=shard_id, active_rooms=sessions.active_room_count())]
+    chosen_shard_id = allocator.choose_shard(candidates)
+    epoch = await room_state.claim_room(session.room_id, chosen_shard_id)
+    await room_state.save_players(session.room_id, white_conn.username, black_conn.username)
+    ticket = create_ticket(session.room_id, epoch)
+    get_logger().info(f'match created: room={session.room_id}')
+    await white_conn.send(
+        MatchFound(room_id=session.room_id, color=WHITE_COLOR, opponent=black_conn.username, ticket=ticket))
+    await black_conn.send(
+        MatchFound(room_id=session.room_id, color=BLACK_COLOR, opponent=white_conn.username, ticket=ticket))
+    asyncio.create_task(run_session_tick_loop(session, sessions, result_writer, room_state))
+    asyncio.create_task(broadcast_loop(session))
+    return session
+
+
+async def join_queue(conn, matchmaking, sessions, mailboxes, waiting_connections, result_writer, room_state, allocator, shard_id):
     matched_username = await matchmaking.try_match(conn.username, conn.rating)
     if matched_username is not None:
         opponent_conn = waiting_connections.pop(matched_username)
-        session = sessions.create_session(opponent_conn, conn)
-        epoch = await room_state.claim_room(session.room_id, shard_id)
-        await room_state.save_players(session.room_id, opponent_conn.username, conn.username)
-        ticket = create_ticket(session.room_id, epoch)
-        get_logger().info(f'match created: room={session.room_id}')
-        await opponent_conn.send(
-            MatchFound(room_id=session.room_id, color=WHITE_COLOR, opponent=conn.username, ticket=ticket))
-        await conn.send(
-            MatchFound(room_id=session.room_id, color=BLACK_COLOR, opponent=opponent_conn.username, ticket=ticket))
-        asyncio.create_task(run_session_tick_loop(session, sessions, result_writer, room_state))
-        asyncio.create_task(broadcast_loop(session))
+        session = await _start_session(opponent_conn, conn, sessions, result_writer, room_state, allocator, shard_id)
         waiting_mailbox = mailboxes.pop(matched_username, None)
         if waiting_mailbox is not None:
             await waiting_mailbox.put(session)
@@ -60,6 +69,54 @@ async def join_queue(conn, matchmaking, sessions, mailboxes, waiting_connections
         mailboxes.pop(conn.username, None)
         waiting_connections.pop(conn.username, None)
         return None
+
+
+async def create_room(conn, pending_rooms):
+    room_id = uuid.uuid4().hex[:8]
+    mailbox = asyncio.Queue(maxsize=1)
+    pending_rooms[room_id] = (conn, mailbox)
+    await conn.send(RoomCreated(room_id=room_id))
+    try:
+        return await asyncio.wait_for(mailbox.get(), timeout=CLOSE_ROOM_TIMEOUT_S)
+    except asyncio.TimeoutError:
+        pending_rooms.pop(room_id, None)
+        return None
+
+
+async def join_room(conn, room_id, sessions, pending_rooms, result_writer, room_state, allocator, shard_id):
+    pending = pending_rooms.pop(room_id, None)
+    if pending is None:
+        await conn.send(ErrorMessage(message='room not found'))
+        return None
+    creator_conn, mailbox = pending
+    session = await _start_session(
+        creator_conn, conn, sessions, result_writer, room_state, allocator, shard_id, room_id=room_id)
+    await mailbox.put(session)
+    return session
+
+
+async def choose_mode(websocket):
+    async for raw in websocket:
+        try:
+            msg = protocol.decode(raw)
+        except protocol.ProtocolError:
+            continue
+        msg_type = msg[FIELDS['TYPE']]
+        if msg_type in (MSG_TYPES['JOIN_ROOM'], MSG_TYPES['SPECTATE']):
+            return msg_type, msg.get(FIELDS['ROOM_ID'])
+        if msg_type in (MSG_TYPES['JOIN_QUEUE'], MSG_TYPES['CREATE_ROOM']):
+            return msg_type, None
+    return None, None
+
+
+async def spectate_room(conn, room_id, sessions):
+    session = sessions.get(room_id)
+    if session is None or session.status != SessionStatus.ACTIVE:
+        await conn.send(ErrorMessage(message='room not found or not active'))
+        return None
+    session.viewers.append(conn)
+    await conn.send(session.snapshot())
+    return session
 
 
 async def handle_session_messages(session, conn):
@@ -79,6 +136,14 @@ async def handle_session_messages(session, conn):
         if session.status == SessionStatus.ACTIVE:
             session.mark_disconnected(conn)
             await session.broadcast(OpponentReconnecting())
+
+
+async def handle_spectator_messages(session, conn):
+    try:
+        async for raw in conn.websocket:
+            pass
+    finally:
+        session.viewers.remove(conn)
 
 
 async def broadcast_loop(session):
@@ -149,9 +214,11 @@ async def main():
     sessions = SessionManager()
     result_writer = ResultWriter(repo)
     room_state = RoomState(redis_client)
+    allocator = GameAllocator()
     shard_id = uuid.uuid4().hex[:8]
     mailboxes = {}
     waiting_connections = {}
+    pending_rooms = {}
 
     async def handle_player_lifecycle(websocket):
         logger.info('client connected')
@@ -164,13 +231,43 @@ async def main():
                 return
             await handle_session_messages(session, player)
             return
-        session = await join_queue(
-            player, matchmaking, sessions, mailboxes, waiting_connections, result_writer, room_state, shard_id)
-        if session is None:
-            await player.send(NoOpponent())
-            return
-        await handle_session_messages(session, player)
 
+        mode, room_id = await choose_mode(websocket)
+        mode_handlers = {
+            MSG_TYPES['JOIN_QUEUE']: (
+                lambda: join_queue(player, matchmaking, sessions, mailboxes, waiting_connections,
+                                    result_writer, room_state, allocator, shard_id),
+                True,
+                handle_session_messages,
+            ),
+            MSG_TYPES['CREATE_ROOM']: (
+                lambda: create_room(player, pending_rooms),
+                True,
+                handle_session_messages,
+            ),
+            MSG_TYPES['JOIN_ROOM']: (
+                lambda: join_room(player, room_id, sessions, pending_rooms, result_writer, room_state, allocator, shard_id),
+                False,
+                handle_session_messages,
+            ),
+            MSG_TYPES['SPECTATE']: (
+                lambda: spectate_room(player, room_id, sessions),
+                False,
+                handle_spectator_messages,
+            ),
+        }
+        entry = mode_handlers.get(mode)
+        if entry is None:
+            return
+        handler, notify_no_opponent, message_handler = entry
+        session = await handler()
+        if session is None:
+            if notify_no_opponent:
+                await player.send(NoOpponent())
+            return
+        await message_handler(session, player)
+
+    await asyncio.sleep(room_state.lease_ttl_seconds)
     for orphaned_room_id in await room_state.find_orphaned_rooms():
         recovered_session = await recover_room(orphaned_room_id, room_state, repo, sessions, shard_id)
         if recovered_session is not None:

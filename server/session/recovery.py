@@ -1,7 +1,7 @@
 from core.config.constants import EMPTY_CELL
 from core.domain.board import Board
-from server.connection import PlayerConnection
-from server.session import GameSession
+from server.session.connection import PlayerConnection
+from server.session.session import GameSession
 
 BOARD_SIZE = 8
 

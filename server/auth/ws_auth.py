@@ -1,6 +1,6 @@
 import protocol
-from server.connection import PlayerConnection
-from server.tokens import verify_token
+from server.session.connection import PlayerConnection
+from server.auth.tokens import verify_token
 from protocol import FIELDS, MSG_TYPES, ErrorMessage, Ok, ProtocolError
 
 

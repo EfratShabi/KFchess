@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
-from server.tokens import create_token, verify_token
+from server.auth.tokens import create_token, verify_token
 
 bearer_scheme = HTTPBearer()
 
@@ -72,7 +72,7 @@ def create_app(repo):
 
 if __name__ == '__main__':
     import uvicorn
-    from server.db import init_db, AccountRepository
+    from server.persistence.db import init_db, AccountRepository
 
     conn = init_db()
     repo = AccountRepository(conn)

@@ -5,7 +5,7 @@ from datetime import datetime
 import psycopg2
 import psycopg2.errors
 
-from server.auth import hash_password, verify_password
+from server.auth.auth import hash_password, verify_password
 
 DEFAULT_RATING = 1200
 

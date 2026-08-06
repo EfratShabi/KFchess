@@ -1,8 +1,8 @@
 import asyncio
 
 from core.config.constants import WHITE_COLOR
-from server.db import AccountRepository
-from server.result_writer import GameResult, ResultWriter
+from server.persistence.db import AccountRepository
+from server.persistence.result_writer import GameResult, ResultWriter
 
 
 def test_publish_persists_result_row_and_updates_ratings(db_conn):

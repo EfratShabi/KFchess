@@ -21,7 +21,7 @@ class GameLogger:
     def _handle_move_started(self, piece, start, end, time):
         self.entries.append(f"{self._color(piece)}: move {self._name(piece)} {start}->{end}")
 
-    def _handle_move_landed(self, piece, end, time):
+    def _handle_move_landed(self, piece, end, next_state, time):
         self.entries.append(f"{self._color(piece)}: {self._name(piece)} arrived {end}")
 
     def _handle_move_captured(self, attacker, captured, position, time):

@@ -1,6 +1,6 @@
-from server.connection import PlayerConnection
-from server.session import GameSession, SessionStatus
-from server.session_manager import SessionManager
+from server.session.connection import PlayerConnection
+from server.session.session import GameSession, SessionStatus
+from server.session.session_manager import SessionManager
 
 
 def make_pair():

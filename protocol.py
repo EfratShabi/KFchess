@@ -11,6 +11,10 @@ MSG_TYPES = {
     'OK': 'ok',
     'ERROR': 'error',
     'JOIN_QUEUE': 'join_queue',
+    'CREATE_ROOM': 'create_room',
+    'JOIN_ROOM': 'join_room',
+    'ROOM_CREATED': 'room_created',
+    'SPECTATE': 'spectate',
     'RECONNECT': 'reconnect',
     'MATCH_FOUND': 'match_found',
     'NO_OPPONENT': 'no_opponent',
@@ -68,6 +72,12 @@ class MatchFound:
     opponent: str
     ticket: str
     type: str = MSG_TYPES['MATCH_FOUND']
+
+
+@dataclass
+class RoomCreated:
+    room_id: str
+    type: str = MSG_TYPES['ROOM_CREATED']
 
 
 @dataclass
@@ -193,6 +203,7 @@ MESSAGE_CLASSES = {
     MSG_TYPES['OK']: Ok,
     MSG_TYPES['ERROR']: ErrorMessage,
     MSG_TYPES['MATCH_FOUND']: MatchFound,
+    MSG_TYPES['ROOM_CREATED']: RoomCreated,
     MSG_TYPES['NO_OPPONENT']: NoOpponent,
     MSG_TYPES['OPPONENT_DISCONNECTED']: OpponentDisconnected,
     'opponent_reconnecting': OpponentReconnecting,

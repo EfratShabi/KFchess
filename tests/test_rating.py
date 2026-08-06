@@ -1,4 +1,4 @@
-from server.rating import expected_score, update_ratings
+from server.postgame.rating import expected_score, update_ratings
 
 
 def test_expected_score_is_half_for_equal_ratings():

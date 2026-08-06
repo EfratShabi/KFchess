@@ -1,5 +1,5 @@
-import server.tokens as tokens
-from server.tokens import create_token, verify_token
+import server.auth.tokens as tokens
+from server.auth.tokens import create_token, verify_token
 
 
 def test_valid_token_returns_username():

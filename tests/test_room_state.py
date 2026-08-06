@@ -2,7 +2,7 @@ import asyncio
 
 import protocol
 from protocol import Snapshot
-from server.room_state import RoomState, ROOM_EPOCH_KEY, ROOM_OWNER_KEY, ROOM_SNAPSHOT_KEY
+from server.session.room_state import RoomState, ROOM_EPOCH_KEY, ROOM_OWNER_KEY, ROOM_SNAPSHOT_KEY
 
 
 def test_claim_room_starts_at_epoch_one(redis_client):

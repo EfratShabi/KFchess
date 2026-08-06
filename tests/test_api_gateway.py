@@ -2,8 +2,8 @@ from fastapi.testclient import TestClient
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
 from server.api_gateway import create_app
-from server.db import AccountRepository
-from server.tokens import create_token, verify_token
+from server.persistence.db import AccountRepository
+from server.auth.tokens import create_token, verify_token
 
 
 def make_client(db_conn):

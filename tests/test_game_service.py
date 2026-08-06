@@ -19,19 +19,19 @@ def make_service(*rows):
 # handle_click — בחירה
 # ──────────────────────────────
 
-def test_click_selects_piece():
+def test_click_selects_piece(click_xy):
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(50, 50)
+    ctrl.handle_click(*click_xy(0, 0))
     assert ctrl.selected_piece == (0, 0)
 
-def test_click_empty_cell_no_selection():
+def test_click_empty_cell_no_selection(click_xy):
     svc, ctrl = make_service(". . .")
-    ctrl.handle_click(150, 50)
+    ctrl.handle_click(*click_xy(0, 1))
     assert ctrl.selected_piece is None
 
 def test_click_outside_board_ignored():
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(500, 500)
+    ctrl.handle_click(5000, 5000)
     assert ctrl.selected_piece is None
 
 def test_click_outside_board_negative():
@@ -44,16 +44,16 @@ def test_click_outside_board_negative():
 # handle_click — החלפת בחירה
 # ──────────────────────────────
 
-def test_click_friendly_replaces_selection():
+def test_click_friendly_replaces_selection(click_xy):
     svc, ctrl = make_service("wR wN .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(150, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 1))
     assert ctrl.selected_piece == (0, 1)
 
-def test_click_friendly_does_not_queue_move():
+def test_click_friendly_does_not_queue_move(click_xy):
     svc, ctrl = make_service("wR wN .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(150, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 1))
     assert svc.state.movements == []
 
 
@@ -61,34 +61,34 @@ def test_click_friendly_does_not_queue_move():
 # handle_click — רישום תנועה
 # ──────────────────────────────
 
-def test_legal_move_registers_movement():
+def test_legal_move_registers_movement(click_xy):
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(250, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 2))
     assert len(svc.state.movements) == 1
 
-def test_legal_move_clears_selection():
+def test_legal_move_clears_selection(click_xy):
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(250, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 2))
     assert ctrl.selected_piece is None
 
-def test_illegal_move_no_movement_registered():
+def test_illegal_move_no_movement_registered(click_xy):
     svc, ctrl = make_service("wR . .", ". . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(250, 150)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(1, 2))
     assert svc.state.movements == []
 
-def test_move_stores_correct_piece():
+def test_move_stores_correct_piece(click_xy):
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(250, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 2))
     assert svc.state.movements[0].piece == 'wR'
 
-def test_move_stores_correct_destination():
+def test_move_stores_correct_destination(click_xy):
     svc, ctrl = make_service("wR . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(250, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 2))
     assert svc.state.movements[0].end == (0, 2)
 
 
@@ -96,11 +96,11 @@ def test_move_stores_correct_destination():
 # handle_click — כלי בתנועה
 # ──────────────────────────────
 
-def test_cannot_click_moving_piece():
+def test_cannot_click_moving_piece(click_xy):
     svc, ctrl = make_service("wR . . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(350, 50)
-    ctrl.handle_click(50, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 3))
+    ctrl.handle_click(*click_xy(0, 0))
     assert ctrl.selected_piece is None
 
 
@@ -108,31 +108,31 @@ def test_cannot_click_moving_piece():
 # handle_jump
 # ──────────────────────────────
 
-def test_jump_registers_jump():
+def test_jump_registers_jump(click_xy):
     svc, ctrl = make_service("wK . .")
-    ctrl.handle_jump(50, 50)
+    ctrl.handle_jump(*click_xy(0, 0))
     assert len(svc.state.jumps) == 1
 
-def test_jump_correct_piece():
+def test_jump_correct_piece(click_xy):
     svc, ctrl = make_service("wK . .")
-    ctrl.handle_jump(50, 50)
+    ctrl.handle_jump(*click_xy(0, 0))
     assert svc.state.jumps[0].piece == 'wK'
 
-def test_jump_empty_cell_ignored():
+def test_jump_empty_cell_ignored(click_xy):
     svc, ctrl = make_service(". . .")
-    ctrl.handle_jump(150, 50)
+    ctrl.handle_jump(*click_xy(0, 1))
     assert svc.state.jumps == []
 
 def test_jump_outside_board_ignored():
     svc, ctrl = make_service("wK . .")
-    ctrl.handle_jump(500, 500)
+    ctrl.handle_jump(5000, 5000)
     assert svc.state.jumps == []
 
-def test_jump_moving_piece_ignored():
+def test_jump_moving_piece_ignored(click_xy):
     svc, ctrl = make_service("wR . . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(350, 50)
-    ctrl.handle_jump(50, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 3))
+    ctrl.handle_jump(*click_xy(0, 0))
     assert svc.state.jumps == []
 
 
@@ -149,12 +149,12 @@ def test_game_over_false_initially():
 # get_board_string
 # ──────────────────────────────
 
-def test_cannot_redirect_piece_already_moving():
+def test_cannot_redirect_piece_already_moving(click_xy):
     svc, ctrl = make_service("wR . . .", ". . . .", ". . . .", ". . . .")
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(350, 50)
-    ctrl.handle_click(50, 50)
-    ctrl.handle_click(150, 50)
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 3))
+    ctrl.handle_click(*click_xy(0, 0))
+    ctrl.handle_click(*click_xy(0, 1))
     assert len(svc.state.movements) == 1
     assert svc.state.movements[0].end == (0, 3)
 

@@ -4,7 +4,7 @@ from core.config.constants import WHITE_COLOR
 from core.domain.board import Board
 from core.real_time.real_time import RealTime
 from core.services.game_service import GameService
-from server.broadcaster import NetworkBroadcaster
+from server.session.broadcaster import NetworkBroadcaster
 
 
 def make_service(*rows):

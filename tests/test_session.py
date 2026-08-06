@@ -2,9 +2,9 @@ import asyncio
 import time
 
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
-from server.connection import PlayerConnection
+from server.session.connection import PlayerConnection
 from protocol import GameOver, PieceSnapshot
-from server.session import GameSession
+from server.session.session import GameSession
 
 
 class FakeWebSocket:

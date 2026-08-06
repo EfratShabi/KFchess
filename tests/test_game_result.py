@@ -1,7 +1,7 @@
 from core.config.constants import WHITE_COLOR, BLACK_COLOR
-from server.connection import PlayerConnection
-from server.game_result import compute_rating_changes
-from server.session import GameSession
+from server.session.connection import PlayerConnection
+from server.postgame.game_result import compute_rating_changes
+from server.session.session import GameSession
 
 
 def make_finished_session(winner_color):

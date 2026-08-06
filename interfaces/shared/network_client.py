@@ -13,6 +13,7 @@ class NetworkClient:
         self.uri = uri
         self.incoming = queue.Queue()
         self.outgoing = queue.Queue()
+        self.disconnected = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
     def start(self):
@@ -22,7 +23,12 @@ class NetworkClient:
         self.outgoing.put(raw_text)
 
     def _run(self):
-        asyncio.run(self._main())
+        try:
+            asyncio.run(self._main())
+        except Exception:
+            pass
+        finally:
+            self.disconnected.set()
 
 
     async def _reader(self, ws):
@@ -31,10 +37,13 @@ class NetworkClient:
 
     async def _writer(self, ws):
         while True:
-            raw = await asyncio.to_thread(self.outgoing.get)
+            try:
+                raw = await asyncio.to_thread(self.outgoing.get, True, 0.5)
+            except queue.Empty:
+                continue
             await ws.send(raw)
 
 
     async def _main(self):
-        async with websockets.connect(self.uri) as ws:
+        async with websockets.connect(self.uri, ping_interval=3, ping_timeout=3) as ws:
             await asyncio.gather(self._reader(ws), self._writer(ws))

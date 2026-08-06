@@ -1,9 +1,9 @@
 import asyncio
 
 import protocol
-from server.db import AccountRepository
-from server.tokens import create_token
-from server.ws_auth import authenticate_with_token
+from server.persistence.db import AccountRepository
+from server.auth.tokens import create_token
+from server.auth.ws_auth import authenticate_with_token
 from protocol import MSG_TYPES
 
 

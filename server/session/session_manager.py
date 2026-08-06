@@ -1,14 +1,15 @@
 import uuid
 
-from server.session import GameSession, SessionStatus
+from server.session.session import GameSession, SessionStatus
 
 
 class SessionManager:
     def __init__(self):
         self._sessions = {}
 
-    def create_session(self, white_conn, black_conn):
-        room_id = uuid.uuid4().hex[:8]
+    def create_session(self, white_conn, black_conn, room_id=None):
+        if room_id is None:
+            room_id = uuid.uuid4().hex[:8]
         session = GameSession(room_id, white_conn, black_conn)
         self._sessions[room_id] = session
         return session
@@ -21,6 +22,9 @@ class SessionManager:
 
     def remove(self, room_id):
         self._sessions.pop(room_id, None)
+
+    def active_room_count(self):
+        return len(self._sessions)
 
     def has_active_session(self, username):
         return any(

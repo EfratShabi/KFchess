@@ -1,4 +1,4 @@
-from server.auth import hash_password, verify_password
+from server.auth.auth import hash_password, verify_password
 
 
 def test_verify_accepts_correct_password():
